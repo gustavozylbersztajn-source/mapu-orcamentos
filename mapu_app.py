@@ -206,8 +206,11 @@ if agency_info.get("is_admin"):
         n_phone   = c2.text_input("Telefone")
         criar = st.form_submit_button("➕ Criar Agência", use_container_width=True, type="primary")
 
-    if criar and n_user and n_pass and n_name:
-        if n_user in agencies_now:
+    if criar:
+        st.write("DEBUG criar=True · user:", repr(n_user), "· pass:", repr(n_pass), "· name:", repr(n_name))
+        if not n_user or not n_pass or not n_name:
+            st.error("Preencha usuário, senha e nome.")
+        elif n_user in agencies_now:
             st.error(f"Usuário `{n_user}` já existe.")
         else:
             agencies_now[n_user] = {
@@ -217,11 +220,14 @@ if agency_info.get("is_admin"):
                 "email":       n_email,
                 "phone":       n_phone,
             }
-            if m.save_agencies_dropbox(agencies_now):
-                st.success(f"Agência `{n_name}` criada com login `{n_user}`.")
-                st.rerun()
-            else:
-                st.error("Erro ao salvar no Dropbox.")
+            try:
+                ok = m.save_agencies_dropbox(agencies_now)
+                if ok:
+                    st.success(f"Agência `{n_name}` criada! Login: `{n_user}`")
+                else:
+                    st.error("save_agencies_dropbox retornou False")
+            except Exception as ex:
+                st.exception(ex)
     st.stop()
 
 tipo = 1
