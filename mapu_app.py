@@ -66,6 +66,17 @@ if _approve_key:
                 result = dbx.files_list_folder(f"/{year}/{month}")
                 names = [e.name for e in result.entries]
                 st.write(f"Pastas em /{year}/{month}:", names)
+                # acha a pasta certa
+                target = next((e.path_lower for e in result.entries if e.name.startswith(slug)), None)
+                st.write("Target encontrado:", target)
+                if target:
+                    for sub in [f"{target}/1. orcamento", f"{target}/1. ORCAMENTO"]:
+                        try:
+                            entries = dbx.files_list_folder(sub).entries
+                            st.write(f"Arquivos em {sub}:", [e.name for e in entries])
+                            break
+                        except Exception as ex2:
+                            st.write(f"Falha em {sub}: {ex2}")
             except Exception as ex:
                 st.write(f"Erro listando /{year}/{month}: {ex}")
         st.stop()
