@@ -2046,8 +2046,17 @@ def send_approved_budget_email(data, calcs, pdf_path):
         print("  ⚠ Email da agência não encontrado")
         return False
 
-    checkin  = data["checkin"].strftime("%d/%m/%Y")
-    checkout = data["checkout"].strftime("%d/%m/%Y")
+    def _fmt(d):
+        if hasattr(d, "strftime"):
+            return d.strftime("%d/%m/%Y")
+        # string ISO "YYYY-MM-DD"
+        try:
+            from datetime import datetime
+            return datetime.strptime(str(d), "%Y-%m-%d").strftime("%d/%m/%Y")
+        except Exception:
+            return str(d)
+    checkin  = _fmt(data.get("checkin", ""))
+    checkout = _fmt(data.get("checkout", ""))
     total    = f"CLP {calcs['total_cc']:,.0f}".replace(",", ".")
 
     msg = MIMEMultipart()
