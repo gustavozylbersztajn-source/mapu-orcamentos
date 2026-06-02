@@ -2298,6 +2298,36 @@ def _get_dropbox_client():
     )
 
 
+def load_agencies_dropbox():
+    """Carrega agencies.json de /config/agencies.json no Dropbox."""
+    dbx = _get_dropbox_client()
+    if not dbx:
+        return {}
+    try:
+        import urllib.request
+        link = dbx.files_get_temporary_link("/config/agencies.json").link
+        with urllib.request.urlopen(link) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return {}
+
+
+def save_agencies_dropbox(agencies):
+    """Salva agencies.json em /config/agencies.json no Dropbox."""
+    dbx = _get_dropbox_client()
+    if not dbx:
+        return False
+    try:
+        import dropbox as _dbx
+        data = json.dumps(agencies, ensure_ascii=False, indent=2).encode("utf-8")
+        dbx.files_upload(data, "/config/agencies.json",
+                         mode=_dbx.files.WriteMode.overwrite)
+        return True
+    except Exception as e:
+        print(f"  ⚠ Erro ao salvar agencies: {e}")
+        return False
+
+
 def upload_budget_to_dropbox(pdf_path, xlsx_path, data):
     """Faz upload do PDF, Excel e data.json do orçamento para o Dropbox."""
     import dropbox as _dbx

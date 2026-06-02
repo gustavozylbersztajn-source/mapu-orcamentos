@@ -15,19 +15,33 @@ def load_mapu():
     spec.loader.exec_module(m)
     return m
 
-@st.cache_data
 def load_agencies():
+    """Carrega agências: arquivo local → Dropbox → Streamlit secrets (admin)."""
+    agencies = {}
+
+    # 1. Arquivo local (desenvolvimento)
     p = Path(__file__).parent / "agencies.json"
     if p.exists():
-        return json.loads(p.read_text())
-    # Nuvem: lê de st.secrets
+        agencies.update(json.loads(p.read_text()))
+
+    # 2. Dropbox (fonte principal em produção)
     try:
-        result = {}
-        for key in st.secrets["agencies"]:
-            result[key] = dict(st.secrets["agencies"][key])
-        return result
+        dropbox_agencies = m.load_agencies_dropbox()
+        agencies.update(dropbox_agencies)
     except Exception:
-        return {}
+        pass
+
+    # 3. Streamlit secrets — admin + fallback
+    try:
+        for key in st.secrets.get("agencies", {}):
+            entry = dict(st.secrets["agencies"][key])
+            # admin do secrets tem prioridade e nunca é sobrescrito pelo Dropbox
+            if entry.get("is_admin") or key not in agencies:
+                agencies[key] = entry
+    except Exception:
+        pass
+
+    return agencies
 
 m = load_mapu()
 
@@ -142,6 +156,73 @@ if col_logout.button("Sair", use_container_width=True):
 
 st.caption(f"Agência: **{agency_info['agency_name']}** · {agency_info['contact']}")
 st.divider()
+
+# ── Painel Admin ───────────────────────────────────────────────────────────────
+if agency_info.get("is_admin"):
+    st.markdown("## Gerenciar Agências")
+    agencies_now = m.load_agencies_dropbox()
+
+    if agencies_now:
+        for u, info in list(agencies_now.items()):
+            with st.expander(f"**{info.get('agency_name','?')}** · `{u}`"):
+                with st.form(f"edit_{u}"):
+                    c1, c2 = st.columns(2)
+                    new_name    = c1.text_input("Nome da agência", info.get("agency_name",""))
+                    new_contact = c1.text_input("Contato", info.get("contact",""))
+                    new_email   = c2.text_input("Email", info.get("email",""))
+                    new_phone   = c2.text_input("Telefone", info.get("phone",""))
+                    new_pass    = c2.text_input("Senha (deixe em branco para manter)", "")
+                    col_save, col_del = st.columns(2)
+                    salvar  = col_save.form_submit_button("💾 Salvar", use_container_width=True)
+                    excluir = col_del.form_submit_button("🗑 Excluir", use_container_width=True)
+                if salvar:
+                    agencies_now[u]["agency_name"] = new_name
+                    agencies_now[u]["contact"]     = new_contact
+                    agencies_now[u]["email"]        = new_email
+                    agencies_now[u]["phone"]        = new_phone
+                    if new_pass.strip():
+                        agencies_now[u]["password"] = new_pass.strip()
+                    if m.save_agencies_dropbox(agencies_now):
+                        st.success("Salvo!")
+                    else:
+                        st.error("Erro ao salvar no Dropbox.")
+                if excluir:
+                    del agencies_now[u]
+                    if m.save_agencies_dropbox(agencies_now):
+                        st.success(f"Agência `{u}` removida.")
+                        st.rerun()
+    else:
+        st.info("Nenhuma agência cadastrada ainda.")
+
+    st.divider()
+    st.markdown("### Nova Agência")
+    with st.form("nova_agencia"):
+        c1, c2 = st.columns(2)
+        n_user    = c1.text_input("Usuário (login)").strip().lower()
+        n_pass    = c1.text_input("Senha")
+        n_name    = c1.text_input("Nome da agência")
+        n_contact = c1.text_input("Contato")
+        n_email   = c2.text_input("Email")
+        n_phone   = c2.text_input("Telefone")
+        criar = st.form_submit_button("➕ Criar Agência", use_container_width=True, type="primary")
+
+    if criar and n_user and n_pass and n_name:
+        if n_user in agencies_now:
+            st.error(f"Usuário `{n_user}` já existe.")
+        else:
+            agencies_now[n_user] = {
+                "password":    n_pass,
+                "agency_name": n_name,
+                "contact":     n_contact,
+                "email":       n_email,
+                "phone":       n_phone,
+            }
+            if m.save_agencies_dropbox(agencies_now):
+                st.success(f"Agência `{n_name}` criada com login `{n_user}`.")
+                st.rerun()
+            else:
+                st.error("Erro ao salvar no Dropbox.")
+    st.stop()
 
 tipo = 1
 
