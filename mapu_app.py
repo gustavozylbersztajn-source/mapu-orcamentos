@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MAPU — Interface Web para Geração de Orçamentos"""
+"""MAPU — Interface Web para Geração de Orçamentos v2"""
 
 import importlib.util, json
 from datetime import date, timedelta
