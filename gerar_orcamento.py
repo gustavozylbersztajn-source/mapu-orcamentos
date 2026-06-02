@@ -1938,11 +1938,26 @@ def send_approval_notification(data, calcs, pdf_path, app_url="http://localhost:
         print("  ⚠ SMTP não configurado — notificação não enviada")
         return
 
+    import urllib.parse
     slug    = data["checkin"].strftime("%Y%m%d") + "_" + data.get("client", "orcamento")
     checkin = data["checkin"].strftime("%d/%m/%Y")
     ag_name = data.get("agency_name", "Agência")
     total   = f"CLP {calcs['total_cc']:,.0f}".replace(",", ".")
-    approve_url = f"{app_url}?approve={slug}"
+    params = {
+        "approve": slug,
+        "cl":  data.get("client_raw", ""),
+        "ci":  data["checkin"].strftime("%Y-%m-%d"),
+        "co":  data["checkout"].strftime("%Y-%m-%d"),
+        "n":   data.get("nights", 0),
+        "cab": ",".join(data.get("cabins", {}).keys()),
+        "tot": int(calcs.get("total_cc", 0)),
+        "ag":  data.get("agency_name", ""),
+        "agc": data.get("agency_contact", ""),
+        "age": data.get("agency_email", ""),
+        "agp": data.get("agency_phone", ""),
+        "agu": data.get("agency_user", ""),
+    }
+    approve_url = f"{app_url}?{urllib.parse.urlencode(params)}"
 
     checkout   = data["checkout"].strftime("%d/%m/%Y")
     cabins_str = ", ".join(data["cabins"].keys())
@@ -2074,6 +2089,34 @@ hola@mapuchile.com · +569 58642354
     except Exception as e:
         print(f"  ⚠ Erro ao enviar para agência: {e}")
         return False
+
+
+def download_pdf_from_dropbox(slug, agency_user):
+    """Baixa só o PDF do Dropbox para anexar no email de aprovação."""
+    import tempfile
+    dbx = _get_dropbox_client()
+    if not dbx:
+        return None
+    try:
+        year, month = slug[:4], slug[4:6]
+        ag = agency_user.upper()
+        folder = f"/{year}/{month}/{slug}_{ag}/1. orcamento"
+        try:
+            entries = dbx.files_list_folder(folder).entries
+        except Exception:
+            folder = f"/{year}/{month}/{slug}_{ag}/1. ORCAMENTO"
+            entries = dbx.files_list_folder(folder).entries
+        pdf_entry = next((e for e in entries if e.name.endswith(".pdf")), None)
+        if not pdf_entry:
+            return None
+        tmp_dir = Path(tempfile.mkdtemp())
+        pdf_path = tmp_dir / pdf_entry.name
+        _, resp = dbx.files_download(pdf_entry.path_lower)
+        pdf_path.write_bytes(resp.content)
+        return pdf_path
+    except Exception as e:
+        print(f"  ⚠ Erro ao baixar PDF do Dropbox: {e}")
+        return None
 
 
 def find_budget_files(slug):

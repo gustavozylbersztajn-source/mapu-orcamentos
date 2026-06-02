@@ -50,76 +50,46 @@ if _approve_key:
     st.title("MAPU | Aprovação de Orçamento")
     st.divider()
 
-    json_path, pdf_path = m.find_budget_files(_approve_key)
-
-    if json_path is None:
-        st.error(f"Orçamento `{_approve_key}` não encontrado.")
-        # debug temporário
-        dbx = m._get_dropbox_client()
-        if dbx is None:
-            st.warning("Dropbox client: None — secrets não configurados")
-        else:
-            st.info("Dropbox client: OK")
-            slug = _approve_key
-            year, month = slug[:4], slug[4:6]
-            try:
-                result = dbx.files_list_folder(f"/{year}/{month}")
-                names = [e.name for e in result.entries]
-                st.write(f"Pastas em /{year}/{month}:", names)
-                # acha a pasta certa
-                target = next((e.path_lower for e in result.entries if e.name.startswith(slug)), None)
-                st.write("Target encontrado:", target)
-                if target:
-                    for sub in [f"{target}/1. orcamento", f"{target}/1. ORCAMENTO"]:
-                        try:
-                            entries = dbx.files_list_folder(sub).entries
-                            st.write(f"Arquivos em {sub}:", [e.name for e in entries])
-                            break
-                        except Exception as ex2:
-                            st.write(f"Falha em {sub}: {ex2}")
-            except Exception as ex:
-                st.write(f"Erro listando /{year}/{month}: {ex}")
-        st.stop()
-
-    raw = json.loads(Path(json_path).read_text())
-    # reconstruct basic display data
-    ag_name    = raw.get("agency_name", "—")
-    ag_contact = raw.get("agency_contact", "—")
-    ag_email   = raw.get("agency_email", "—")
-    client_raw = raw.get("client_raw", "—")
-    checkin    = raw.get("checkin", "—")
-    checkout   = raw.get("checkout", "—")
-    nights     = raw.get("nights", "—")
-    cabins     = raw.get("cabins", {})
-    total_cc   = raw.get("total_cc", 0)
+    # Lê dados direto da URL — sem precisar buscar no Dropbox
+    p = st.query_params
+    client_raw = p.get("cl", "—")
+    checkin    = p.get("ci", "—")
+    checkout   = p.get("co", "—")
+    nights     = p.get("n", "—")
+    cabins_str = p.get("cab", "—")
+    total_cc   = int(p.get("tot", 0))
+    ag_name    = p.get("ag", "—")
+    ag_contact = p.get("agc", "—")
+    ag_email   = p.get("age", "—")
+    ag_phone   = p.get("agp", "—")
+    ag_user    = p.get("agu", "")
 
     st.markdown(f"**Agência:** {ag_name} · {ag_contact} · {ag_email}")
     st.markdown(f"**Cliente:** {client_raw}")
     st.markdown(f"**Check-in:** {checkin} · **Check-out:** {checkout} · **{nights} noite(s)**")
-    st.markdown(f"**Cabanas:** {', '.join(cabins.keys())}")
+    st.markdown(f"**Cabanas:** {cabins_str}")
     if total_cc:
         st.metric("TOTAL (c/ CC 4%)", f"CLP {total_cc:,.0f}".replace(",", "."))
 
     st.divider()
 
-    if pdf_path and Path(pdf_path).exists():
-        with open(pdf_path, "rb") as f:
-            st.download_button(
-                "⬇️ Baixar PDF para revisão",
-                f.read(),
-                file_name=Path(pdf_path).name,
-                mime="application/pdf",
-                use_container_width=True,
-            )
-        st.divider()
-
     col_a, col_b = st.columns(2)
     if col_a.button("✓ Aprovar e Enviar PDF", type="primary", use_container_width=True):
-        # rebuild calcs dict from saved json
-        calcs_saved = {k: raw.get(k, 0) for k in
-                       ("lodging", "food", "total", "total_cc", "agency_fee",
-                        "food_embedded", "usd_ref", "per_adult")}
-        ok = m.send_approved_budget_email(raw, calcs_saved, pdf_path)
+        with st.spinner("Baixando PDF e enviando..."):
+            pdf_path = m.download_pdf_from_dropbox(_approve_key, ag_user)
+            data_min = {
+                "client_raw":    client_raw,
+                "agency_name":   ag_name,
+                "agency_contact": ag_contact,
+                "agency_email":  ag_email,
+                "agency_phone":  ag_phone,
+                "checkin":       checkin,
+                "checkout":      checkout,
+                "nights":        nights,
+                "cabins":        {c: {} for c in cabins_str.split(",")},
+            }
+            calcs_min = {"total_cc": total_cc}
+            ok = m.send_approved_budget_email(data_min, calcs_min, pdf_path)
         if ok:
             st.success(f"PDF enviado para {ag_email}")
         else:
