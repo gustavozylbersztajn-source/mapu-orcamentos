@@ -1944,25 +1944,60 @@ def send_approval_notification(data, calcs, pdf_path, app_url="http://localhost:
     total   = f"CLP {calcs['total_cc']:,.0f}".replace(",", ".")
     approve_url = f"{app_url}?approve={slug}"
 
+    checkout   = data["checkout"].strftime("%d/%m/%Y")
+    cabins_str = ", ".join(data["cabins"].keys())
+    ag_contact = data.get("agency_contact", "")
+    ag_email   = data.get("agency_email", "")
+    ag_phone   = data.get("agency_phone", "")
+
     msg = MIMEMultipart()
     msg["From"]    = cfg["smtp_user"]
     msg["To"]      = GUSTAVO_EMAIL
-    msg["Subject"] = f"[MAPU] Novo orçamento para aprovação — {data['client_raw']} ({ag_name})"
+    msg["Subject"] = f"[MAPU] Aprovação — {data['client_raw']} · {ag_name}"
 
-    body = f"""
-Novo orçamento gerado por <b>{ag_name}</b> · {data.get('agency_contact', '')}.<br><br>
+    body = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif">
+<div style="max-width:560px;margin:32px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
 
-<b>Cliente:</b> {data['client_raw']}<br>
-<b>Check-in:</b> {checkin} · <b>{data['nights']} noite(s)</b><br>
-<b>Cabanas:</b> {', '.join(data['cabins'].keys())}<br>
-<b>Total:</b> {total}<br><br>
+  <!-- Header -->
+  <div style="background:#1a1a1a;padding:24px 32px">
+    <p style="margin:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:1px">MAPU <span style="font-weight:300;font-style:italic">experiences lodge</span></p>
+    <p style="margin:4px 0 0;color:#aaa;font-size:12px;letter-spacing:2px">NOVO ORÇAMENTO PARA APROVAÇÃO</p>
+  </div>
 
-<a href="{approve_url}" style="background:#1a1a1a;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;font-weight:bold">
-  ✓ Aprovar e Enviar PDF
-</a><br><br>
+  <!-- Body -->
+  <div style="padding:28px 32px">
 
-<small>PDF em anexo para revisão.</small>
-"""
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+      <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px;width:120px">Cliente</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:15px;font-weight:600;color:#1a1a1a">{data['client_raw']}</td></tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Check-in</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">{checkin}</td></tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Check-out</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">{checkout} &nbsp;·&nbsp; {data['nights']} noite(s)</td></tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Cabanas</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">{cabins_str}</td></tr>
+      <tr><td style="padding:8px 0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Total</td>
+          <td style="padding:8px 0;font-size:18px;font-weight:700;color:#1a1a1a">{total}</td></tr>
+    </table>
+
+    <p style="margin:0 0 6px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Solicitado por</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#444">{ag_name} &nbsp;·&nbsp; {ag_contact}<br>
+    <a href="mailto:{ag_email}" style="color:#888">{ag_email}</a> &nbsp;·&nbsp; {ag_phone}</p>
+
+    <a href="{approve_url}" style="display:inline-block;background:#1a1a1a;color:#fff;padding:14px 28px;text-decoration:none;border-radius:4px;font-size:14px;font-weight:600;letter-spacing:1px">
+      ✓ &nbsp;APROVAR E ENVIAR PDF
+    </a>
+
+    <p style="margin:20px 0 0;font-size:12px;color:#aaa">PDF completo em anexo para revisão antes de aprovar.</p>
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#f8f8f8;padding:16px 32px;border-top:1px solid #eee">
+    <p style="margin:0;font-size:11px;color:#bbb;text-align:center">MAPU Experiences Lodge &nbsp;·&nbsp; hola@mapuchile.com &nbsp;·&nbsp; +569 58642354</p>
+  </div>
+
+</div>
+</body></html>"""
     msg.attach(MIMEText(body, "html"))
 
     if pdf_path and Path(pdf_path).exists():
