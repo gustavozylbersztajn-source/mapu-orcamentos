@@ -34,7 +34,7 @@ m = load_mapu()
 CABANAS = ["COIGUE", "NIRE", "CHAITEN", "CORCOVADO"]
 
 # ── Layout base ────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="MAPU — Orçamento", page_icon="🏕️", layout="centered")
+st.set_page_config(page_title="MAPU LODGE | Estimates APP", page_icon="🏕️", layout="centered")
 
 st.markdown("""
 <style>
