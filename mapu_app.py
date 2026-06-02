@@ -54,6 +54,20 @@ if _approve_key:
 
     if json_path is None:
         st.error(f"Orçamento `{_approve_key}` não encontrado.")
+        # debug temporário
+        dbx = m._get_dropbox_client()
+        if dbx is None:
+            st.warning("Dropbox client: None — secrets não configurados")
+        else:
+            st.info("Dropbox client: OK")
+            slug = _approve_key
+            year, month = slug[:4], slug[4:6]
+            try:
+                result = dbx.files_list_folder(f"/{year}/{month}")
+                names = [e.name for e in result.entries]
+                st.write(f"Pastas em /{year}/{month}:", names)
+            except Exception as ex:
+                st.write(f"Erro listando /{year}/{month}: {ex}")
         st.stop()
 
     raw = json.loads(Path(json_path).read_text())
