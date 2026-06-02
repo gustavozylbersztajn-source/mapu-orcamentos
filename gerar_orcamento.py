@@ -1928,7 +1928,7 @@ def _load_data_json(json_path):
     return data
 
 
-GUSTAVO_EMAIL = "gustavozylbersztajn@gmail.com"
+GUSTAVO_EMAIL = "hola@mapuchile.com"
 
 
 def send_approval_notification(data, calcs, pdf_path, app_url="http://localhost:8502"):
