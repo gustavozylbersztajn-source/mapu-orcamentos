@@ -1,0 +1,32 @@
+# Credenciais — NUNCA subir
+dropbox_config.json
+mapu_credentials.json
+config.json
+*.env
+.streamlit/secrets.toml
+
+# Planilhas locais e gerados
+MAPU_PLANNER.xlsx
+2022/
+2023/
+2024/
+2025/
+2026/
+2027/
+backup_planilhas/
+_antigos/
+PACOTES_PADRAO/
+FOLDERS/
+
+# Scripts internos
+get_dropbox_token.py
+processar_orcamentos.py
+test_*.py
+formatar_sheets.py
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+~$*

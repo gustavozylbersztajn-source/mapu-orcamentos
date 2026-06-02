@@ -1,0 +1,80 @@
+{
+  "alta": {
+    "standard": {
+      "COIGUE": 374850,
+      "NIRE": 374850,
+      "CHAITEN": 418880,
+      "CORCOVADO": 514080
+    },
+    "long": {
+      "COIGUE": 356108,
+      "NIRE": 356108,
+      "CHAITEN": 397936,
+      "CORCOVADO": 488376
+    },
+    "agency_rate": 0.15,
+    "cc_rate": 0.04,
+    "meal_prices": {
+      "breakfast": {
+        "adult": 24000,
+        "child": 18000
+      },
+      "dinner": {
+        "adult": 60000,
+        "child": 36000
+      }
+    }
+  },
+  "baixa": {
+    "standard": {
+      "COIGUE": 333200,
+      "NIRE": 333200,
+      "CHAITEN": 380800,
+      "CORCOVADO": 476000
+    },
+    "long": {
+      "COIGUE": 316540,
+      "NIRE": 316540,
+      "CHAITEN": 361760,
+      "CORCOVADO": 452200
+    },
+    "agency_rate": 0.15,
+    "cc_rate": 0.04,
+    "meal_prices": {
+      "breakfast": {
+        "adult": 24000,
+        "child": 18000
+      },
+      "dinner": {
+        "adult": 60000,
+        "child": 36000
+      }
+    }
+  },
+  "marco": {
+    "standard": {
+      "COIGUE": 333200,
+      "NIRE": 333200,
+      "CHAITEN": 380800,
+      "CORCOVADO": 476000
+    },
+    "long": {
+      "COIGUE": 316540,
+      "NIRE": 316540,
+      "CHAITEN": 361760,
+      "CORCOVADO": 452200
+    },
+    "agency_rate": 0.15,
+    "cc_rate": 0.04,
+    "meal_prices": {
+      "breakfast": {
+        "adult": 24000,
+        "child": 18000
+      },
+      "dinner": {
+        "adult": 60000,
+        "child": 36000
+      }
+    }
+  }
+}
