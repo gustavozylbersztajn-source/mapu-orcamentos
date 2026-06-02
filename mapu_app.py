@@ -90,9 +90,6 @@ if _approve_key:
     col_a, col_b = st.columns(2)
     if col_a.button("✓ Aprovar e Enviar PDF", type="primary", use_container_width=True):
         with st.spinner("Baixando PDF e enviando..."):
-            # debug: mostra o que vai ser buscado
-            year, month = _approve_key[:4], _approve_key[4:6]
-            st.caption(f"🔍 Buscando: /{year}/{month}/{_approve_key}_{ag_user.upper()}/1. ORCAMENTO")
             pdf_path = m.download_pdf_from_dropbox(_approve_key, ag_user)
             if pdf_path is None:
                 st.warning("PDF não encontrado no Dropbox — email será enviado sem anexo.")
@@ -119,6 +116,51 @@ if _approve_key:
 
     st.stop()
 
+# ── Tela de aprovação de nova agência (Gustavo) ────────────────────────────────
+_register_key = st.query_params.get("register")
+if _register_key == "1":
+    st.title("MAPU | Nova Agência — Aprovar Acesso")
+    st.divider()
+    p = st.query_params
+    ag_name    = p.get("ag_name", "—")
+    ag_contact = p.get("ag_contact", "—")
+    ag_email   = p.get("ag_email", "—")
+    ag_phone   = p.get("ag_phone", "—")
+
+    st.markdown(f"**Agência:** {ag_name}")
+    st.markdown(f"**Contato:** {ag_contact}")
+    st.markdown(f"**Email:** {ag_email}")
+    st.markdown(f"**Telefone:** {ag_phone}")
+    st.divider()
+
+    if st.button("✓ Aprovar e Criar Acesso", type="primary", use_container_width=True):
+        with st.spinner("Criando credenciais e enviando email..."):
+            existing = m.load_agencies_dropbox()
+            username, password = m.generate_agency_credentials(ag_name, list(existing.keys()))
+            existing[username] = {
+                "password":    password,
+                "agency_name": ag_name,
+                "contact":     ag_contact,
+                "email":       ag_email,
+                "phone":       ag_phone,
+            }
+            ok_save = m.save_agencies_dropbox(existing)
+            agency_data = {
+                "agency_name": ag_name,
+                "contact":     ag_contact,
+                "email":       ag_email,
+                "phone":       ag_phone,
+            }
+            ok_mail = m.send_agency_credentials(agency_data, username, password)
+        if ok_save and ok_mail:
+            st.success(f"Acesso criado! Login: `{username}` · Email enviado para {ag_email}")
+        elif ok_save:
+            st.warning(f"Acesso criado (login: `{username}`) mas erro ao enviar email para {ag_email}.")
+        else:
+            st.error("Erro ao salvar no Dropbox.")
+
+    st.stop()
+
 # ── Login ──────────────────────────────────────────────────────────────────────
 if "agency_user" not in st.session_state:
     st.session_state["agency_user"] = None
@@ -141,6 +183,35 @@ if st.session_state["agency_user"] is None:
             st.rerun()
         else:
             st.error("Usuário ou senha incorretos.")
+
+    st.divider()
+    with st.expander("Ainda não tem acesso? Solicitar acesso"):
+        with st.form("registro"):
+            r1, r2 = st.columns(2)
+            r_name    = r1.text_input("Nome da agência*")
+            r_contact = r1.text_input("Contato*")
+            r_email   = r2.text_input("Email*")
+            r_phone   = r2.text_input("Telefone")
+            enviar = st.form_submit_button("Enviar solicitação", use_container_width=True, type="primary")
+        if enviar:
+            if not r_name.strip() or not r_contact.strip() or not r_email.strip():
+                st.error("Preencha nome, contato e email.")
+            else:
+                try:
+                    _host = st.context.headers.get("host", "localhost:8502")
+                    _scheme = "https" if "." in _host.split(":")[0] else "http"
+                    _app_url = f"{_scheme}://{_host}"
+                except Exception:
+                    _app_url = "http://localhost:8502"
+                ok = m.send_registration_request(
+                    {"agency_name": r_name.strip(), "contact": r_contact.strip(),
+                     "email": r_email.strip(), "phone": r_phone.strip()},
+                    _app_url,
+                )
+                if ok:
+                    st.success("Solicitação enviada! Você receberá suas credenciais por email em breve.")
+                else:
+                    st.error("Erro ao enviar. Tente novamente ou contate hola@mapuchile.com")
     st.stop()
 
 # ── App principal (autenticado) ────────────────────────────────────────────────
@@ -207,7 +278,6 @@ if agency_info.get("is_admin"):
         criar = st.form_submit_button("➕ Criar Agência", use_container_width=True, type="primary")
 
     if criar:
-        st.write("DEBUG criar=True · user:", repr(n_user), "· pass:", repr(n_pass), "· name:", repr(n_name))
         if not n_user or not n_pass or not n_name:
             st.error("Preencha usuário, senha e nome.")
         elif n_user in agencies_now:

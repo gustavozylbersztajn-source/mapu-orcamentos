@@ -2298,6 +2298,107 @@ def _get_dropbox_client():
     )
 
 
+def send_registration_request(agency_data, app_url):
+    """Envia email para Gustavo pedindo aprovação de nova agência."""
+    import urllib.parse
+    cfg = load_smtp_config()
+    if not cfg:
+        return False
+    params = {
+        "register": "1",
+        "ag_name":    agency_data.get("agency_name", ""),
+        "ag_contact": agency_data.get("contact", ""),
+        "ag_email":   agency_data.get("email", ""),
+        "ag_phone":   agency_data.get("phone", ""),
+    }
+    approve_url = f"{app_url}?{urllib.parse.urlencode(params)}"
+    msg = MIMEMultipart()
+    msg["From"]    = cfg["smtp_user"]
+    msg["To"]      = GUSTAVO_EMAIL
+    msg["Subject"] = f"[MAPU] Solicitação de acesso — {agency_data.get('agency_name','')}"
+    body = f"""<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:32px">
+<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+  <div style="background:#1a1a1a;padding:20px 28px">
+    <p style="margin:0;color:#fff;font-size:18px;font-weight:700">MAPU <span style="font-weight:300;font-style:italic">experiences lodge</span></p>
+    <p style="margin:4px 0 0;color:#aaa;font-size:11px;letter-spacing:2px">NOVA SOLICITAÇÃO DE ACESSO</p>
+  </div>
+  <div style="padding:24px 28px">
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td style="padding:6px 0;color:#888;font-size:12px;width:100px">Agência</td><td style="padding:6px 0;font-weight:600">{agency_data.get('agency_name','')}</td></tr>
+      <tr><td style="padding:6px 0;color:#888;font-size:12px">Contato</td><td style="padding:6px 0">{agency_data.get('contact','')}</td></tr>
+      <tr><td style="padding:6px 0;color:#888;font-size:12px">Email</td><td style="padding:6px 0">{agency_data.get('email','')}</td></tr>
+      <tr><td style="padding:6px 0;color:#888;font-size:12px">Telefone</td><td style="padding:6px 0">{agency_data.get('phone','')}</td></tr>
+    </table>
+    <div style="margin-top:24px">
+      <a href="{approve_url}" style="display:inline-block;background:#1a1a1a;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-size:13px;font-weight:600">✓ Aprovar e Criar Acesso</a>
+    </div>
+  </div>
+</div></body></html>"""
+    msg.attach(MIMEText(body, "html"))
+    try:
+        with smtplib.SMTP(cfg["smtp_host"], cfg["smtp_port"]) as server:
+            server.starttls()
+            server.login(cfg["smtp_user"], cfg["smtp_pass"])
+            server.sendmail(cfg["smtp_user"], GUSTAVO_EMAIL, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"  ⚠ Erro ao enviar registro: {e}")
+        return False
+
+
+def send_agency_credentials(agency_data, username, password):
+    """Envia email para a agência com login e senha criados."""
+    cfg = load_smtp_config()
+    if not cfg:
+        return False
+    ag_email = agency_data.get("email", "")
+    if not ag_email:
+        return False
+    msg = MIMEMultipart()
+    msg["From"]    = cfg["smtp_user"]
+    msg["To"]      = ag_email
+    msg["Subject"] = "MAPU — Seu acesso foi aprovado"
+    body = f"""<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:32px">
+<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+  <div style="background:#1a1a1a;padding:20px 28px">
+    <p style="margin:0;color:#fff;font-size:18px;font-weight:700">MAPU <span style="font-weight:300;font-style:italic">experiences lodge</span></p>
+  </div>
+  <div style="padding:24px 28px">
+    <p>Olá <b>{agency_data.get('contact','')}</b>,</p>
+    <p>Seu acesso ao sistema de orçamentos MAPU foi aprovado. Use as credenciais abaixo:</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr><td style="padding:8px;background:#f8f8f8;color:#888;font-size:12px;width:80px">Usuário</td><td style="padding:8px;background:#f8f8f8;font-weight:700;font-size:16px">{username}</td></tr>
+      <tr><td style="padding:8px;color:#888;font-size:12px">Senha</td><td style="padding:8px;font-weight:700;font-size:16px">{password}</td></tr>
+    </table>
+    <a href="https://mapu-orcamentos.streamlit.app" style="display:inline-block;background:#1a1a1a;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-size:13px;font-weight:600">Acessar o sistema</a>
+    <p style="margin-top:20px;font-size:12px;color:#aaa">MAPU Experiences Lodge · hola@mapuchile.com · +569 58642354</p>
+  </div>
+</div></body></html>"""
+    msg.attach(MIMEText(body, "html"))
+    try:
+        with smtplib.SMTP(cfg["smtp_host"], cfg["smtp_port"]) as server:
+            server.starttls()
+            server.login(cfg["smtp_user"], cfg["smtp_pass"])
+            server.sendmail(cfg["smtp_user"], ag_email, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"  ⚠ Erro ao enviar credenciais: {e}")
+        return False
+
+
+def generate_agency_credentials(agency_name, existing_users):
+    """Gera username único e senha aleatória."""
+    import re, random, string
+    base = re.sub(r"[^a-z0-9]", "", agency_name.lower())[:12] or "agencia"
+    username = base
+    i = 2
+    while username in existing_users:
+        username = f"{base}{i}"
+        i += 1
+    password = "".join(random.choices(string.ascii_letters + string.digits, k=10))
+    return username, password
+
+
 def load_agencies_dropbox():
     """Carrega agencies.json de /config/agencies.json no Dropbox."""
     dbx = _get_dropbox_client()
