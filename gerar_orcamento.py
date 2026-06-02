@@ -2109,20 +2109,26 @@ def download_pdf_from_dropbox(slug, agency_user):
     try:
         year, month = slug[:4], slug[4:6]
         ag = agency_user.upper()
-        folder = f"/{year}/{month}/{slug}_{ag}/1. orcamento"
-        try:
-            entries = dbx.files_list_folder(folder).entries
-        except Exception:
-            folder = f"/{year}/{month}/{slug}_{ag}/1. ORCAMENTO"
-            entries = dbx.files_list_folder(folder).entries
+        # tenta os dois cases do nome da subpasta
+        entries = None
+        for sub in (f"/{year}/{month}/{slug}_{ag}/1. orcamento",
+                    f"/{year}/{month}/{slug}_{ag}/1. ORCAMENTO"):
+            try:
+                entries = dbx.files_list_folder(sub).entries
+                break
+            except Exception:
+                continue
+        if entries is None:
+            print(f"  ⚠ Subpasta 1.ORCAMENTO não encontrada para {slug}_{ag}")
+            return None
         pdf_entry = next((e for e in entries if e.name.endswith(".pdf")), None)
         if not pdf_entry:
             return None
         tmp_dir = Path(tempfile.mkdtemp())
         pdf_path = tmp_dir / pdf_entry.name
-        _, resp = dbx.files_download(pdf_entry.path_lower)
-        pdf_path.write_bytes(resp.content)
-        return pdf_path
+        # usa download direto para arquivo — mais robusto que resp.content
+        dbx.files_download_to_file(str(pdf_path), pdf_entry.path_lower)
+        return pdf_path if pdf_path.exists() else None
     except Exception as e:
         print(f"  ⚠ Erro ao baixar PDF do Dropbox: {e}")
         return None

@@ -77,6 +77,8 @@ if _approve_key:
     if col_a.button("✓ Aprovar e Enviar PDF", type="primary", use_container_width=True):
         with st.spinner("Baixando PDF e enviando..."):
             pdf_path = m.download_pdf_from_dropbox(_approve_key, ag_user)
+            if pdf_path is None:
+                st.warning("PDF não encontrado no Dropbox — email será enviado sem anexo.")
             data_min = {
                 "client_raw":    client_raw,
                 "agency_name":   ag_name,
