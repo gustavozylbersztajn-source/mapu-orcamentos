@@ -2126,8 +2126,10 @@ def download_pdf_from_dropbox(slug, agency_user):
             return None
         tmp_dir = Path(tempfile.mkdtemp())
         pdf_path = tmp_dir / pdf_entry.name
-        # usa download direto para arquivo — mais robusto que resp.content
-        dbx.files_download_to_file(str(pdf_path), pdf_entry.path_lower)
+        # obtém link temporário e baixa via urllib (mais robusto em nuvem)
+        import urllib.request
+        link = dbx.files_get_temporary_link(pdf_entry.path_lower).link
+        urllib.request.urlretrieve(link, str(pdf_path))
         return pdf_path if pdf_path.exists() else None
     except Exception as e:
         print(f"  ⚠ Erro ao baixar PDF do Dropbox: {e}")
