@@ -9,17 +9,15 @@ import streamlit as st
 # ── Carrega o módulo principal ─────────────────────────────────────────────────
 @st.cache_resource
 def load_mapu():
-    spec = importlib.util.spec_from_file_location(
-        "mapu",
-        "/Users/mac/Dropbox/Family Room/4.MAPU/4.ORCAMENTOS/gerar_orcamento.py"
-    )
+    _path = Path(__file__).parent / "gerar_orcamento.py"
+    spec = importlib.util.spec_from_file_location("mapu", str(_path))
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
 
 @st.cache_data
 def load_agencies():
-    p = Path("/Users/mac/Dropbox/Family Room/4.MAPU/4.ORCAMENTOS/agencies.json")
+    p = Path(__file__).parent / "agencies.json"
     if p.exists():
         return json.loads(p.read_text())
     # Nuvem: lê de st.secrets
