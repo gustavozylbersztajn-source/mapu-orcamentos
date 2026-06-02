@@ -22,8 +22,10 @@ def load_agencies():
         return json.loads(p.read_text())
     # Nuvem: lê de st.secrets
     try:
-        raw = dict(st.secrets.get("agencies", {}))
-        return {k: dict(v) for k, v in raw.items()}
+        result = {}
+        for key in st.secrets["agencies"]:
+            result[key] = dict(st.secrets["agencies"][key])
+        return result
     except Exception:
         return {}
 
