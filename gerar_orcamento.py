@@ -2088,32 +2088,60 @@ def find_budget_files(slug):
 
 
 def _find_budget_files_dropbox(slug):
-    """Baixa data.json e PDF do Dropbox para o fluxo de aprovação em nuvem."""
+    """Baixa data.json e PDF do Dropbox navegando pela estrutura de pastas."""
     import tempfile
     dbx = _get_dropbox_client()
     if not dbx:
+        print("  ⚠ Dropbox client não disponível")
         return None, None
     try:
-        import dropbox as _dbx
-        res = dbx.files_search_v2(f"{slug}_data.json")
-        if not res.matches:
+        # slug formato: YYYYMMDD_CLIENT — extrai ano e mês
+        year  = slug[:4]
+        month = slug[4:6]
+        parent = f"/{year}/{month}"
+
+        # Lista subpastas do mês para achar a que começa com o slug
+        result = dbx.files_list_folder(parent)
+        target = None
+        for entry in result.entries:
+            if entry.name.startswith(slug):
+                target = entry.path_lower
+                break
+
+        if not target:
+            print(f"  ⚠ Pasta {slug} não encontrada em Dropbox:{parent}")
             return None, None
-        entry = res.matches[0].metadata.get_metadata()
+
+        # Lista a subpasta "1. orcamento"
+        orcamento = f"{target}/1. orcamento"
+        try:
+            entries = dbx.files_list_folder(orcamento).entries
+        except Exception:
+            # tenta com case original
+            orcamento = f"{target}/1. ORCAMENTO"
+            entries = dbx.files_list_folder(orcamento).entries
+
         tmp_dir = Path(tempfile.mkdtemp())
-        json_path = tmp_dir / f"{slug}_data.json"
-        _, response = dbx.files_download(entry.path_lower)
-        json_path.write_bytes(response.content)
-        folder_path = entry.path_lower.rsplit("/", 1)[0]
-        folder_result = dbx.files_list_folder(folder_path)
-        pdf_entry = next((e for e in folder_result.entries if e.name.endswith(".pdf")), None)
+
+        json_entry = next((e for e in entries if e.name.endswith("_data.json")), None)
+        pdf_entry  = next((e for e in entries if e.name.endswith(".pdf")), None)
+
+        json_path = None
+        if json_entry:
+            json_path = tmp_dir / json_entry.name
+            _, resp = dbx.files_download(json_entry.path_lower)
+            json_path.write_bytes(resp.content)
+
         pdf_path = None
         if pdf_entry:
             pdf_path = tmp_dir / pdf_entry.name
-            _, response = dbx.files_download(pdf_entry.path_lower)
-            pdf_path.write_bytes(response.content)
+            _, resp = dbx.files_download(pdf_entry.path_lower)
+            pdf_path.write_bytes(resp.content)
+
         return json_path, pdf_path
+
     except Exception as e:
-        print(f"  ⚠ Dropbox search error: {e}")
+        print(f"  ⚠ Dropbox find error: {e}")
         return None, None
 
 
