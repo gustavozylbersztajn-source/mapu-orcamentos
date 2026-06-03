@@ -1950,6 +1950,10 @@ def send_approval_notification(data, calcs, pdf_path, app_url="http://localhost:
         "co":  data["checkout"].strftime("%Y-%m-%d"),
         "n":   data.get("nights", 0),
         "cab": ",".join(data.get("cabins", {}).keys()),
+        "pax": ",".join(
+            f"{k}:{v.get('adults',0)}:{v.get('infants',0)}"
+            for k, v in data.get("cabins", {}).items()
+        ),
         "tot": int(calcs.get("total_cc", 0)),
         "ag":  data.get("agency_name", ""),
         "agc": data.get("agency_contact", ""),
@@ -2065,54 +2069,61 @@ def send_approved_budget_email(data, calcs, pdf_path):
     msg["Subject"] = f"MAPU — Orçamento aprovado: {data['client_raw']}"
 
     nights = data.get("nights", "—")
-    cabins_str = ", ".join(data["cabins"].keys())
-    body = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif">
-<div style="max-width:540px;margin:32px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+    # Linhas por cabana com pax
+    cabin_rows = ""
+    for cab, pax in data.get("cabins", {}).items():
+        adults  = pax.get("adults", 0)  if isinstance(pax, dict) else 0
+        infants = pax.get("infants", 0) if isinstance(pax, dict) else 0
+        if adults or infants:
+            pax_label = f"{adults} adulto(s)" + (f" + {infants} criança(s)" if infants else "")
+        else:
+            pax_label = "—"
+        cabin_rows += f"""
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px;width:120px">{cab}</td>
+        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#333">{pax_label}</td>
+      </tr>"""
 
-  <div style="background:#1a1a1a;padding:24px 28px;display:flex;align-items:center;gap:16px">
-    <img src="https://raw.githubusercontent.com/gustavozylbersztajn-source/mapu-orcamentos/main/assets/logos/MAPU_logo_BADGEwhitesml.png"
-         alt="MAPU" style="height:48px;width:auto;display:block">
-    <div>
-      <p style="margin:0;color:#fff;font-size:18px;font-weight:700;letter-spacing:1px">MAPU <span style="font-weight:300;font-style:italic">experiences lodge</span></p>
-      <p style="margin:4px 0 0;color:#aaa;font-size:10px;letter-spacing:2px;text-transform:uppercase">Orçamento Aprovado</p>
-    </div>
+    body = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif">
+<div style="max-width:560px;margin:32px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+
+  <!-- Header -->
+  <div style="background:#1a1a1a;padding:24px 32px">
+    <p style="margin:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:1px">MAPU <span style="font-weight:300;font-style:italic">experiences lodge</span></p>
+    <p style="margin:4px 0 0;color:#aaa;font-size:12px;letter-spacing:2px">ORÇAMENTO APROVADO</p>
   </div>
 
-  <div style="padding:28px 28px 8px">
-    <p style="margin:0 0 20px;font-size:15px;color:#333">Olá <b>{ag_contact}</b>,</p>
+  <!-- Body -->
+  <div style="padding:28px 32px">
     <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6">
-      O orçamento para <b>{data['client_raw']}</b> foi aprovado. Segue em anexo o PDF para envio ao cliente.
+      Olá <b>{ag_contact}</b>, o orçamento para <b>{data['client_raw']}</b> foi aprovado.<br>Segue em anexo o PDF para envio ao cliente.
     </p>
 
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <tr style="background:#f8f8f8">
-        <td style="padding:10px 12px;color:#888;width:130px">Check-in</td>
-        <td style="padding:10px 12px;font-weight:600;color:#1a1a1a">{checkin}</td>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px;width:120px">Cliente</td>
+        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:15px;font-weight:600;color:#1a1a1a">{data['client_raw']}</td>
       </tr>
       <tr>
-        <td style="padding:10px 12px;color:#888">Check-out</td>
-        <td style="padding:10px 12px;font-weight:600;color:#1a1a1a">{checkout}</td>
-      </tr>
-      <tr style="background:#f8f8f8">
-        <td style="padding:10px 12px;color:#888">Noites</td>
-        <td style="padding:10px 12px;font-weight:600;color:#1a1a1a">{nights}</td>
+        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Check-in</td>
+        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">{checkin}</td>
       </tr>
       <tr>
-        <td style="padding:10px 12px;color:#888">Cabanas</td>
-        <td style="padding:10px 12px;font-weight:600;color:#1a1a1a">{cabins_str}</td>
+        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Check-out</td>
+        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">{checkout} &nbsp;·&nbsp; {nights} noite(s)</td>
       </tr>
-      <tr style="background:#1a1a1a">
-        <td style="padding:12px;color:#aaa;font-size:12px">Total (c/ CC 4%)</td>
-        <td style="padding:12px;color:#fff;font-weight:700;font-size:16px">{total}</td>
+      {cabin_rows}
+      <tr>
+        <td style="padding:12px 0 4px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Total (c/ CC 4%)</td>
+        <td style="padding:12px 0 4px;font-size:18px;font-weight:700;color:#1a1a1a">{total}</td>
       </tr>
     </table>
   </div>
 
-  <div style="padding:24px 28px 28px">
-    <p style="margin:0;font-size:12px;color:#aaa;line-height:1.8">
-      Qualquer dúvida, entre em contato.<br>
-      <b style="color:#555">Equipe MAPU</b> &nbsp;·&nbsp;
-      <a href="mailto:hola@mapuchile.com" style="color:#555;text-decoration:none">hola@mapuchile.com</a> &nbsp;·&nbsp; +569 58642354
+  <!-- Footer -->
+  <div style="background:#f8f8f8;padding:16px 32px;border-top:1px solid #eee">
+    <p style="margin:0;font-size:11px;color:#bbb;text-align:center">
+      MAPU Experiences Lodge &nbsp;·&nbsp; hola@mapuchile.com &nbsp;·&nbsp; +569 58642354
     </p>
   </div>
 

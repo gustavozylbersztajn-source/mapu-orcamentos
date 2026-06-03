@@ -77,6 +77,15 @@ if _approve_key:
     ag_email   = p.get("age", "—")
     ag_phone   = p.get("agp", "—")
     ag_user    = p.get("agu", "")
+    # Decodifica pax por cabana: "COIGUE:2:0,NIRE:1:1"
+    _pax_str = p.get("pax", "")
+    cabins_with_pax = {}
+    for _part in _pax_str.split(","):
+        _bits = _part.split(":")
+        if len(_bits) == 3:
+            cabins_with_pax[_bits[0]] = {"adults": int(_bits[1]), "infants": int(_bits[2])}
+    if not cabins_with_pax:
+        cabins_with_pax = {c: {} for c in cabins_str.split(",")}
 
     st.markdown(f"**Agência:** {ag_name} · {ag_contact} · {ag_email}")
     st.markdown(f"**Cliente:** {client_raw}")
@@ -102,7 +111,7 @@ if _approve_key:
                 "checkin":       checkin,
                 "checkout":      checkout,
                 "nights":        nights,
-                "cabins":        {c: {} for c in cabins_str.split(",")},
+                "cabins":        cabins_with_pax,
             }
             calcs_min = {"total_cc": total_cc}
             ok = m.send_approved_budget_email(data_min, calcs_min, pdf_path)
