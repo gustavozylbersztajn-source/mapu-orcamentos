@@ -182,7 +182,7 @@ if st.session_state["agency_user"] is None:
             st.session_state["agency_info"] = agencies[u]
             st.rerun()
         else:
-            st.error("Usuário ou senha incorretos.")
+            st.error(f"Usuário ou senha incorretos. [debug: {list(agencies.keys())}]")
 
     st.divider()
     with st.expander("Ainda não tem acesso? Solicitar acesso"):
