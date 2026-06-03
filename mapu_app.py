@@ -175,16 +175,6 @@ if st.session_state["agency_user"] is None:
         entrar   = st.form_submit_button("Entrar", use_container_width=True, type="primary")
 
     if entrar:
-        # debug: testa Dropbox diretamente
-        try:
-            dbx = m._get_dropbox_client()
-            if dbx:
-                _, resp = dbx.files_download("/config/agencies.json")
-                _dbx_result = f"OK: {list(json.loads(resp.content).keys())}"
-            else:
-                _dbx_result = "sem cliente"
-        except Exception as _ex:
-            _dbx_result = f"ERRO: {_ex}"
         agencies = load_agencies()
         u = usuario.strip().lower()
         if u in agencies and agencies[u]["password"] == senha.strip():
@@ -192,7 +182,7 @@ if st.session_state["agency_user"] is None:
             st.session_state["agency_info"] = agencies[u]
             st.rerun()
         else:
-            st.error(f"Incorretos. DBX={_dbx_result} | Agências={list(agencies.keys())}")
+            st.error("Usuário ou senha incorretos.")
 
     st.divider()
     with st.expander("Ainda não tem acesso? Solicitar acesso"):
