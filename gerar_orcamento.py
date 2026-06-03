@@ -2069,9 +2069,13 @@ def send_approved_budget_email(data, calcs, pdf_path):
     body = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif">
 <div style="max-width:540px;margin:32px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
 
-  <div style="background:#1a1a1a;padding:24px 28px">
-    <p style="margin:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:1px">MAPU <span style="font-weight:300;font-style:italic">experiences lodge</span></p>
-    <p style="margin:6px 0 0;color:#aaa;font-size:11px;letter-spacing:2px;text-transform:uppercase">Orçamento Aprovado</p>
+  <div style="background:#1a1a1a;padding:24px 28px;display:flex;align-items:center;gap:16px">
+    <img src="https://raw.githubusercontent.com/gustavozylbersztajn-source/mapu-orcamentos/main/assets/logos/MAPU_logo_BADGEwhitesml.png"
+         alt="MAPU" style="height:48px;width:auto;display:block">
+    <div>
+      <p style="margin:0;color:#fff;font-size:18px;font-weight:700;letter-spacing:1px">MAPU <span style="font-weight:300;font-style:italic">experiences lodge</span></p>
+      <p style="margin:4px 0 0;color:#aaa;font-size:10px;letter-spacing:2px;text-transform:uppercase">Orçamento Aprovado</p>
+    </div>
   </div>
 
   <div style="padding:28px 28px 8px">
