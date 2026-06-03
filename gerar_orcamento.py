@@ -2403,13 +2403,15 @@ def load_agencies_dropbox():
     """Carrega agencies.json de /config/agencies.json no Dropbox."""
     dbx = _get_dropbox_client()
     if not dbx:
+        print("load_agencies_dropbox: sem cliente Dropbox")
         return {}
     try:
-        import urllib.request
-        link = dbx.files_get_temporary_link("/config/agencies.json").link
-        with urllib.request.urlopen(link) as r:
-            return json.loads(r.read().decode("utf-8"))
-    except Exception:
+        _, response = dbx.files_download("/config/agencies.json")
+        data = json.loads(response.content.decode("utf-8"))
+        print(f"load_agencies_dropbox: {len(data)} agência(s) carregada(s)")
+        return data
+    except Exception as e:
+        print(f"load_agencies_dropbox erro: {e}")
         return {}
 
 
