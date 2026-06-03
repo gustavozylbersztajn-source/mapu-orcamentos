@@ -119,7 +119,7 @@ if _approve_key:
 # ── Tela de aprovação de nova agência (Gustavo) ────────────────────────────────
 _register_key = st.query_params.get("register")
 if _register_key == "1":
-    st.title("MAPU | Nova Agência — Aprovar Acesso")
+    st.title("MAPU LODGE | NOVO USUÁRIO - Aprovar Acesso")
     st.divider()
     p = st.query_params
     ag_name    = p.get("ag_name", "—")
