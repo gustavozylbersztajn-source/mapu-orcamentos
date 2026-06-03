@@ -2430,24 +2430,14 @@ def _dropbox_access_token():
 
 
 def load_agencies_dropbox():
-    """Carrega agencies.json via HTTP direto (mais confiável no cloud)."""
-    import urllib.request
-    token = _dropbox_access_token()
-    if not token:
-        print("load_agencies_dropbox: sem token")
+    """Carrega agencies.json do Dropbox via SDK."""
+    dbx = _get_dropbox_client()
+    if not dbx:
+        print("load_agencies_dropbox: sem cliente")
         return {}
     try:
-        import json as _json
-        req = urllib.request.Request(
-            "https://content.dropboxapi.com/2/files/download",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Dropbox-API-Arg": _json.dumps({"path": "/config/agencies.json"}),
-            },
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=15) as r:
-            data = _json.loads(r.read().decode("utf-8"))
+        _, response = dbx.files_download("/config/agencies.json")
+        data = json.loads(response.content.decode("utf-8"))
         print(f"load_agencies_dropbox: {len(data)} agência(s)")
         return data
     except Exception as e:
