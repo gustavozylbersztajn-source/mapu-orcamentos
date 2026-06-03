@@ -2399,16 +2399,56 @@ def generate_agency_credentials(agency_name, existing_users):
     return username, password
 
 
+def _dropbox_access_token():
+    """Obtém access token fresco via OAuth2 refresh (HTTP direto)."""
+    import urllib.request, urllib.parse
+    local = Path(__file__).parent / "dropbox_config.json"
+    if local.exists():
+        cfg = json.loads(local.read_text())
+    else:
+        try:
+            sec = st.secrets["dropbox"]
+            cfg = {"app_key": sec["app_key"], "app_secret": sec["app_secret"],
+                   "refresh_token": sec["refresh_token"]}
+        except Exception:
+            return None
+    try:
+        body = urllib.parse.urlencode({
+            "grant_type": "refresh_token",
+            "refresh_token": cfg["refresh_token"],
+            "client_id": cfg["app_key"],
+            "client_secret": cfg["app_secret"],
+        }).encode()
+        req = urllib.request.Request("https://api.dropboxapi.com/oauth2/token",
+                                     data=body, method="POST")
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read())["access_token"]
+    except Exception as e:
+        print(f"_dropbox_access_token erro: {e}")
+        return None
+
+
 def load_agencies_dropbox():
-    """Carrega agencies.json de /config/agencies.json no Dropbox."""
-    dbx = _get_dropbox_client()
-    if not dbx:
-        print("load_agencies_dropbox: sem cliente Dropbox")
+    """Carrega agencies.json via HTTP direto (mais confiável no cloud)."""
+    import urllib.request
+    token = _dropbox_access_token()
+    if not token:
+        print("load_agencies_dropbox: sem token")
         return {}
     try:
-        _, response = dbx.files_download("/config/agencies.json")
-        data = json.loads(response.content.decode("utf-8"))
-        print(f"load_agencies_dropbox: {len(data)} agência(s) carregada(s)")
+        import json as _json
+        req = urllib.request.Request(
+            "https://content.dropboxapi.com/2/files/download",
+            data=b"",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Dropbox-API-Arg": _json.dumps({"path": "/config/agencies.json"}),
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = _json.loads(r.read().decode("utf-8"))
+        print(f"load_agencies_dropbox: {len(data)} agência(s)")
         return data
     except Exception as e:
         print(f"load_agencies_dropbox erro: {e}")
