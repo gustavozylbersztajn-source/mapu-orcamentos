@@ -2407,6 +2407,7 @@ def _dropbox_access_token():
         cfg = json.loads(local.read_text())
     else:
         try:
+            import streamlit as st
             sec = st.secrets["dropbox"]
             cfg = {"app_key": sec["app_key"], "app_secret": sec["app_secret"],
                    "refresh_token": sec["refresh_token"]}
@@ -2439,7 +2440,6 @@ def load_agencies_dropbox():
         import json as _json
         req = urllib.request.Request(
             "https://content.dropboxapi.com/2/files/download",
-            data=b"",
             headers={
                 "Authorization": f"Bearer {token}",
                 "Dropbox-API-Arg": _json.dumps({"path": "/config/agencies.json"}),
