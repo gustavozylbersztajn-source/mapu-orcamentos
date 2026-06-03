@@ -2315,7 +2315,7 @@ def send_registration_request(agency_data, app_url):
     msg = MIMEMultipart()
     msg["From"]    = cfg["smtp_user"]
     msg["To"]      = GUSTAVO_EMAIL
-    msg["Subject"] = f"[MAPU] Solicitação de acesso — {agency_data.get('agency_name','')}"
+    msg["Subject"] = "NOVO USUÁRIO | ACESSO APP ORÇAMENTOS MAPU LODGE"
     body = f"""<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:32px">
 <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
   <div style="background:#1a1a1a;padding:20px 28px">
