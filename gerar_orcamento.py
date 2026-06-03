@@ -2064,20 +2064,56 @@ def send_approved_budget_email(data, calcs, pdf_path):
     msg["To"]      = ag_email
     msg["Subject"] = f"MAPU — Orçamento aprovado: {data['client_raw']}"
 
-    body = f"""
-Olá {ag_contact},<br><br>
+    nights = data.get("nights", "—")
+    cabins_str = ", ".join(data["cabins"].keys())
+    body = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif">
+<div style="max-width:540px;margin:32px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
 
-Segue em anexo o orçamento aprovado para <b>{data['client_raw']}</b>.<br><br>
+  <div style="background:#1a1a1a;padding:24px 28px">
+    <p style="margin:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:1px">MAPU <span style="font-weight:300;font-style:italic">experiences lodge</span></p>
+    <p style="margin:6px 0 0;color:#aaa;font-size:11px;letter-spacing:2px;text-transform:uppercase">Orçamento Aprovado</p>
+  </div>
 
-<b>Check-in:</b> {checkin}<br>
-<b>Check-out:</b> {checkout}<br>
-<b>Cabanas:</b> {', '.join(data['cabins'].keys())}<br>
-<b>Total (c/ CC 4%):</b> {total}<br><br>
+  <div style="padding:28px 28px 8px">
+    <p style="margin:0 0 20px;font-size:15px;color:#333">Olá <b>{ag_contact}</b>,</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6">
+      O orçamento para <b>{data['client_raw']}</b> foi aprovado. Segue em anexo o PDF para envio ao cliente.
+    </p>
 
-Qualquer dúvida, entre em contato.<br><br>
-Equipe MAPU<br>
-hola@mapuchile.com · +569 58642354
-"""
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tr style="background:#f8f8f8">
+        <td style="padding:10px 12px;color:#888;width:130px">Check-in</td>
+        <td style="padding:10px 12px;font-weight:600;color:#1a1a1a">{checkin}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 12px;color:#888">Check-out</td>
+        <td style="padding:10px 12px;font-weight:600;color:#1a1a1a">{checkout}</td>
+      </tr>
+      <tr style="background:#f8f8f8">
+        <td style="padding:10px 12px;color:#888">Noites</td>
+        <td style="padding:10px 12px;font-weight:600;color:#1a1a1a">{nights}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 12px;color:#888">Cabanas</td>
+        <td style="padding:10px 12px;font-weight:600;color:#1a1a1a">{cabins_str}</td>
+      </tr>
+      <tr style="background:#1a1a1a">
+        <td style="padding:12px;color:#aaa;font-size:12px">Total (c/ CC 4%)</td>
+        <td style="padding:12px;color:#fff;font-weight:700;font-size:16px">{total}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="padding:24px 28px 28px">
+    <p style="margin:0;font-size:12px;color:#aaa;line-height:1.8">
+      Qualquer dúvida, entre em contato.<br>
+      <b style="color:#555">Equipe MAPU</b> &nbsp;·&nbsp;
+      <a href="mailto:hola@mapuchile.com" style="color:#555;text-decoration:none">hola@mapuchile.com</a> &nbsp;·&nbsp; +569 58642354
+    </p>
+  </div>
+
+</div>
+</body></html>"""
     msg.attach(MIMEText(body, "html"))
 
     if pdf_path and Path(pdf_path).exists():
