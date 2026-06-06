@@ -388,7 +388,7 @@ if submitted:
         errors.append("Selecione ao menos uma cabana.")
     if checkout <= checkin:
         errors.append("Check-out deve ser após check-in.")
-    if 0 < (checkout - checkin).days < 3:
+    if not is_internal and 0 < (checkout - checkin).days < 3:
         errors.append("Mínimo de 3 noites.")
 
     if errors:
