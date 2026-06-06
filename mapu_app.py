@@ -186,7 +186,7 @@ if st.session_state["agency_user"] is None:
     if entrar:
         agencies = load_agencies()
         u = usuario.strip().lower()
-        if u in agencies and agencies[u]["password"] == senha.strip():
+        if u in agencies and (agencies[u].get("is_internal") or agencies[u]["password"] == senha.strip()):
             st.session_state["agency_user"] = u
             st.session_state["agency_info"] = agencies[u]
             st.rerun()
@@ -245,6 +245,8 @@ if agency_info.get("is_admin"):
 
     if agencies_now:
         for u, info in list(agencies_now.items()):
+            if info.get("is_internal"):
+                continue
             with st.expander(f"**{info.get('agency_name','?')}** · `{u}`"):
                 with st.form(f"edit_{u}"):
                     c1, c2 = st.columns(2)
