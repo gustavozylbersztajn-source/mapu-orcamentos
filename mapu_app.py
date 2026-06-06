@@ -232,6 +232,7 @@ idioma = col_lang.selectbox("Idioma", ["Português", "Español", "English"], lab
 if col_logout.button("Sair", use_container_width=True):
     st.session_state["agency_user"] = None
     st.session_state["agency_info"] = None
+    st.session_state["admin_gerar"] = False
     st.rerun()
 
 st.caption(f"Agência: **{agency_info['agency_name']}** · {agency_info['contact']}")
@@ -307,7 +308,19 @@ if agency_info.get("is_admin"):
                     st.error("save_agencies_dropbox retornou False")
             except Exception as ex:
                 st.exception(ex)
-    st.stop()
+
+    st.divider()
+    if st.button("⚡ Gerar Orçamento", use_container_width=True, type="primary"):
+        st.session_state["admin_gerar"] = True
+        st.rerun()
+
+    if not st.session_state.get("admin_gerar"):
+        st.stop()
+
+    st.divider()
+    if st.button("← Voltar ao Painel Admin"):
+        st.session_state["admin_gerar"] = False
+        st.rerun()
 
 tipo = 1
 
