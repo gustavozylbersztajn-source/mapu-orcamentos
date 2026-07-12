@@ -259,10 +259,12 @@ TRANSLATIONS = {
         "res_quincho": "Quincho",
         "res_equipe":  "Equipe MAPU",
         "res_agencia":  "Taxa agência",
+        "res_cc":      "Taxa cartão de crédito (CC)",
         "res_desconto": "Desconto {pct}%",
         "res_subtotal": "Subtotal neto",
         "res_iva":     "IVA 19% (se aplicável)",
         "total_label": "TOTAL  CLP",
+        "total_cc_note": "*Valor com taxa de cartão de crédito (CC) incluída",
         "usd_ref":     "Referência USD (câmbio {rate} CLP/USD)",
         "por_adulto":  "Por adulto (÷ {n})",
         "rodape":      "Valores em CLP · Válido 7 dias",
@@ -342,9 +344,11 @@ TRANSLATIONS = {
         "res_quincho": "Quincho",
         "res_equipe":  "Equipo MAPU",
         "res_agencia": "Comisión agencia",
+        "res_cc":      "Tarifa tarjeta de crédito (CC)",
         "res_subtotal":"Subtotal neto",
         "res_iva":     "IVA 19% (se aplicável)",
         "total_label": "TOTAL  CLP",
+        "total_cc_note": "*Valor con tarifa de tarjeta de crédito (CC) incluida",
         "usd_ref":     "Referencia USD (cambio {rate} CLP/USD)",
         "por_adulto":  "Por adulto (÷ {n})",
         "rodape":      "Valores en CLP · Válido 7 días",
@@ -424,9 +428,11 @@ TRANSLATIONS = {
         "res_quincho": "Quincho",
         "res_equipe":  "MAPU Team",
         "res_agencia": "Agency fee",
+        "res_cc":      "Credit card fee (CC)",
         "res_subtotal":"Net subtotal",
         "res_iva":     "VAT 19% (if applicable)",
         "total_label": "TOTAL  CLP",
+        "total_cc_note": "*Amount includes credit card fee (CC)",
         "usd_ref":     "USD reference (rate {rate} CLP/USD)",
         "por_adulto":  "Per adult (÷ {n})",
         "rodape":      "Values in CLP · Valid 7 days",
@@ -822,7 +828,7 @@ def calculate(data, prices):
         meal_plan_key = "none"
     meal_plan = t["meal_plans"][meal_plan_key]
 
-    # Embed meals into each cabin's breakdown (value por cabana = cabin + refeições)
+    # Hospedagem e Alimentação ficam separadas no PDF (item próprio cada um) — Jul/2026
     food_embedded = False
     if food > 0:
         for cabin, pax in data["cabins"].items():
@@ -839,12 +845,6 @@ def calculate(data, prices):
                 c_food += mp["dinner"]["child"]  * c_infants * qty
             cabin_breakdown[cabin]["food_amount"] = round(c_food)
             cabin_breakdown[cabin]["meal_plan"]   = meal_plan
-            cabin_breakdown[cabin]["amount"]     += round(c_food)
-        lodging       += food
-        food           = 0
-        food_lines     = []
-        food_breakdown = []
-        food_embedded  = True
 
     mapu_team   = data["mapu_team"]
     total_neto  = lodging + food + mapu_team
@@ -852,6 +852,7 @@ def calculate(data, prices):
     total_bruto = total_neto + iva
     agency_fee  = round(total_bruto * prices.get("agency_rate", 0.15)) if data.get("agency") else 0
     total_cc    = (total_bruto + agency_fee) * (1 + CC_RATE)
+    cc_fee      = round(total_cc - (total_bruto + agency_fee))
     usd_ref     = total_cc / exchange
     per_adult   = total_cc / adults if adults > 0 else 0
 
@@ -870,6 +871,7 @@ def calculate(data, prices):
         "iva":            iva,
         "total_bruto":    total_bruto,
         "agency_fee":     agency_fee,
+        "cc_fee":         cc_fee,
         "total_cc":       total_cc,
         "usd_ref":        usd_ref,
         "per_adult":      per_adult,
@@ -1435,6 +1437,8 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
         resumo_lines.append((t.get("res_quincho", "Quincho"), calcs["quincho"]))
     if calcs.get("agency_fee",  0) > 0:
         resumo_lines.append((t["res_agencia"], calcs["agency_fee"]))
+    if calcs.get("cc_fee",      0) > 0:
+        resumo_lines.append((t["res_cc"],      calcs["cc_fee"]))
     for label, val in resumo_lines:
         pdf.set_text_color(*_GL)
         pdf.set_xy(RX, ry)
@@ -1455,7 +1459,13 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
     pdf.set_font("Disp", size=17)
     pdf.set_xy(RX, ry + 0.5)
     pdf.cell(RW, box_h - 1, fmt_clp(calcs["total_cc"]), align="R")
-    ry += box_h + 4
+    ry += box_h + 2.5
+
+    pdf.set_font("Medium", size=6.5)
+    pdf.set_text_color(*_GL)
+    pdf.set_xy(RX, ry)
+    pdf.cell(RW, 3.5, t["total_cc_note"], align="R")
+    ry += 5.5
 
     # IVA informativo (depois do total)
     iva_info = round(calcs["total"] * 0.19)
