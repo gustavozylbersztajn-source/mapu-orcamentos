@@ -464,7 +464,9 @@ if submitted:
 
             # Upload para Dropbox + notificação de aprovação para Gustavo
             if data.get("agency_user"):
-                m.upload_budget_to_dropbox(pdf_path, xlsx_path, data)
+                dbx_ok, dbx_msg = m.upload_budget_to_dropbox(pdf_path, xlsx_path, data)
+                if not dbx_ok:
+                    st.warning(f"⚠ Orçamento gerado, mas não foi salvo no Dropbox: {dbx_msg}")
 
             # Detecta URL do app (local vs nuvem)
             try:

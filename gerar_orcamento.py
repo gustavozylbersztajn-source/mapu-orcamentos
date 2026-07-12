@@ -27,7 +27,7 @@ except ImportError:
 import openpyxl
 
 # ── PATHS ──────────────────────────────────────────────────────────────────────
-MAPU_ROOT   = Path("/Users/mac/Dropbox/Family Room/4.MAPU")
+MAPU_ROOT   = Path.home() / "Dropbox" / "Family Room" / "4.MAPU"
 ORCAMENTOS  = MAPU_ROOT / "4.ORCAMENTOS"
 PRECOS_XLSX  = MAPU_ROOT / "3.PLANEJAMENTO" / "1.PRECIFICAÇÃO" / "PRECOS_CABINS.xlsx"
 PLANNER_XLSX = MAPU_ROOT / "3.PLANEJAMENTO" / "PLANEJAMENTO_GERAL" / "MAPU_PLANNER.xlsx"
@@ -42,7 +42,7 @@ if not LOGO_PATH.exists():
     LOGO_PATH  = _ASSETS / "logos" / "MAPU_logo_BADGEblacksml3.png"
     LOGO_WHITE = _ASSETS / "logos" / "MAPU_logo_BADGEwhitesml.png"
 
-_FONTS      = Path("/Users/mac/Library/Fonts")
+_FONTS      = Path.home() / "Library" / "Fonts"
 FONT_DISPLAY = _FONTS / "FF_DIN_Condensed_Black.otf"
 FONT_HEAVY   = _FONTS / "FF_DIN_Condensed_Bold.otf"
 FONT_MEDIUM  = _FONTS / "FF_DIN_Condensed_Regular.otf"
@@ -53,6 +53,10 @@ if not FONT_DISPLAY.exists():
 
 # Modo nuvem: sem acesso ao Dropbox local
 IS_CLOUD = not MAPU_ROOT.exists()
+
+# Prefixo usado nos paths do Dropbox API — o app agora tem acesso Full Dropbox
+# (antes era App folder, escopado automaticamente a Apps/mapu-orcamentos-agencias)
+DROPBOX_ROOT = "/Family Room/4.MAPU/4.ORCAMENTOS"
 
 _BG    = (26, 26, 26)
 _WHITE = (255, 255, 255)
@@ -132,14 +136,14 @@ ACTIVITIES_PER_USE = [
 ]
 
 ACTIVITIES_PER_PAX = [
-    ("Cavalgada 1/2 dia",      38),
-    ("Cavalgada 1 dia",        39),
-    ("Rafting 1/2 dia",        40),
-    ("Rafting 1 dia",          41),
-    ("Trekking 1/2 dia",       42),
-    ("Trekking 1 dia",         43),
-    ("Pesca com mosca full day", 44),
-    ("Flotada familiar",       45),
+    ("Trekking 1/2 dia",       38),
+    ("Trekking dia inteiro",   39),
+    ("Flotada familiar",       40),
+    ("Rafting 1/2 dia",        41),
+    ("Rafting dia inteiro",    42),
+    ("Cavalgada 1/2 dia",      43),
+    ("Cavalgada dia inteiro",  44),
+    ("Lancha Yelcho",          45),
     ("Recreação infantil 3hs", 46),
 ]
 
@@ -1640,7 +1644,7 @@ def send_proposal_email(data, calcs, pdf_path, slug=None):
     folder_url = ""
     if pdf_path:
         client_path = Path(pdf_path).parent.parent
-        relative = str(client_path).replace("/Users/mac/Dropbox/", "")
+        relative = str(client_path).replace(str(Path.home() / "Dropbox") + "/", "")
         folder_url = "https://www.dropbox.com/home/" + "/".join(
             urllib.parse.quote(p, safe="") for p in relative.split("/")
         )
@@ -2162,8 +2166,8 @@ def download_pdf_from_dropbox(slug, agency_user):
         ag = agency_user.upper()
         # tenta os dois cases do nome da subpasta
         entries = None
-        for sub in (f"/{year}/{month}/{slug}_{ag}/1. orcamento",
-                    f"/{year}/{month}/{slug}_{ag}/1. ORCAMENTO"):
+        for sub in (f"{DROPBOX_ROOT}/{year}/{month}/{slug}_{ag}/1. orcamento",
+                    f"{DROPBOX_ROOT}/{year}/{month}/{slug}_{ag}/1. ORCAMENTO"):
             try:
                 entries = dbx.files_list_folder(sub).entries
                 break
@@ -2487,7 +2491,7 @@ def load_agencies_dropbox():
         print("load_agencies_dropbox: sem cliente")
         return {}
     try:
-        _, response = dbx.files_download("/config/agencies.json")
+        _, response = dbx.files_download(f"{DROPBOX_ROOT}/config/agencies.json")
         data = json.loads(response.content.decode("utf-8"))
         print(f"load_agencies_dropbox: {len(data)} agência(s)")
         return data
@@ -2504,7 +2508,7 @@ def save_agencies_dropbox(agencies):
     try:
         import dropbox as _dbx
         data = json.dumps(agencies, ensure_ascii=False, indent=2).encode("utf-8")
-        dbx.files_upload(data, "/config/agencies.json",
+        dbx.files_upload(data, f"{DROPBOX_ROOT}/config/agencies.json",
                          mode=_dbx.files.WriteMode.overwrite)
         return True
     except Exception as e:
@@ -2513,18 +2517,20 @@ def save_agencies_dropbox(agencies):
 
 
 def upload_budget_to_dropbox(pdf_path, xlsx_path, data):
-    """Faz upload do PDF, Excel e data.json do orçamento para o Dropbox."""
+    """Faz upload do PDF, Excel e data.json do orçamento para o Dropbox.
+    Retorna (True, "") em sucesso, (False, motivo) em falha."""
     import dropbox as _dbx
     dbx = _get_dropbox_client()
     if not dbx:
-        print("  ⚠ dropbox_config.json não encontrado — upload ignorado")
-        return
+        msg = "dropbox_config.json / Secrets do Dropbox não encontrados — upload ignorado"
+        print(f"  ⚠ {msg}")
+        return False, msg
 
     year  = data["checkin"].strftime("%Y")
     month = data["checkin"].strftime("%m")
     slug  = data["checkin"].strftime("%Y%m%d") + "_" + data["client"]
     ag    = data.get("agency_user", "agencia").upper()
-    folder = f"/{year}/{month}/{slug}_{ag}/1. ORCAMENTO"
+    folder = f"{DROPBOX_ROOT}/{year}/{month}/{slug}_{ag}/1. ORCAMENTO"
 
     # Deriva data.json a partir do pdf_path (mesma pasta, mesmo slug)
     data_json = None
@@ -2533,14 +2539,21 @@ def upload_budget_to_dropbox(pdf_path, xlsx_path, data):
         if candidate.exists():
             data_json = candidate
 
-    for local_path in (pdf_path, xlsx_path, data_json):
-        if not local_path or not Path(local_path).exists():
-            continue
-        dbx_path = f"{folder}/{Path(local_path).name}"
-        with open(local_path, "rb") as f:
-            dbx.files_upload(f.read(), dbx_path,
-                             mode=_dbx.files.WriteMode.overwrite)
-        print(f"  ✓ Dropbox: {dbx_path}")
+    try:
+        for local_path in (pdf_path, xlsx_path, data_json):
+            if not local_path or not Path(local_path).exists():
+                continue
+            dbx_path = f"{folder}/{Path(local_path).name}"
+            with open(local_path, "rb") as f:
+                dbx.files_upload(f.read(), dbx_path,
+                                 mode=_dbx.files.WriteMode.overwrite)
+            print(f"  ✓ Dropbox: {dbx_path}")
+    except Exception as e:
+        msg = f"Falha no upload para o Dropbox: {e}"
+        print(f"  ⚠ {msg}")
+        return False, msg
+
+    return True, ""
 
 
 def main():
