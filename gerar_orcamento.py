@@ -94,6 +94,7 @@ CABIN_MAP = {
         (1, 0): ("F", "BUDGET NIRE 1"),
         (2, 0): ("G", "BUDGET NIRE 2"),
         (2, 1): ("H", "BUDGET NIRE 2+1"),
+        (2, 2): ("Y", "BUDGET NIRE 2+2"),
     },
     "CHAITEN": {
         (1, 0): ("I", "BUDGET CHAITEN 1"),
@@ -925,8 +926,8 @@ def _hide_inactive_budget_cols(xml_str, active_cols):
         if not mn or not mx:
             return tag
         col_min, col_max = int(mn.group(1)), int(mx.group(1))
-        # só atua nas colunas de cabana (C=3 a X=24)
-        if col_min < 3 or col_max > 24:
+        # só atua nas colunas de cabana (C=3 a Y=25)
+        if col_min < 3 or col_max > 25:
             return tag
         # se range multi-coluna, expande em cols individuais para ocultar seletivamente
         base = re.sub(r'\s+hidden="[^"]*"', "", tag)
@@ -1033,7 +1034,7 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
 
     active_cols = []
     if "BUDGET RESUMO" in sheet_map:
-        flags = {f"{col}8": 0 for col in "CDEFGHIJKLMNOPQRSTUVWX"}
+        flags = {f"{col}8": 0 for col in "CDEFGHIJKLMNOPQRSTUVWXY"}
         for cabin, pax in data["cabins"].items():
             key = (pax["adults"], pax["infants"])
             cm  = CABIN_MAP.get(cabin, {})
