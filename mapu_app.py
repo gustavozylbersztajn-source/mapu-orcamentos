@@ -372,7 +372,13 @@ with st.form("orcamento"):
         st.info(f"☕ **Café da manhã incluído** × {nights} noite(s) (Baixa temporada Abr–Nov)")
 
     st.markdown("### Comercial")
-    agency      = st.checkbox("Com agência (15%)", value=True)
+    _agency_label = "Com agência" if agency_info.get("is_admin") else "Com agência (15%)"
+    agency = st.checkbox(_agency_label, value=True)
+    agency_rate_override = None
+    if agency_info.get("is_admin") and agency:
+        agency_rate_override = st.number_input(
+            "Taxa de agência (%)", min_value=0.0, max_value=100.0, value=15.0, step=1.0,
+        ) / 100
     extra_discount_pct = 0.0
     if agency_info.get("is_admin"):
         extra_discount_pct = st.number_input(
@@ -429,6 +435,7 @@ if submitted:
         "meals":            meals,
         "mapu_team":        0,
         "agency":           agency,
+        "agency_rate_override": agency_rate_override,
         "extra_discount_pct": extra_discount_pct,
         "adjustments":      adjustments,
         "lang":             lang,

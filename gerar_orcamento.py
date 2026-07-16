@@ -856,7 +856,10 @@ def calculate(data, prices):
     total_neto  = subtotal_pre_discount - extra_discount_amt
     iva         = round(total_neto * 0.19) if data.get("chilean_client") else 0
     total_bruto = total_neto + iva
-    agency_fee  = round(total_bruto * prices.get("agency_rate", 0.15)) if data.get("agency") else 0
+    _agency_rate = data.get("agency_rate_override")
+    if _agency_rate is None:
+        _agency_rate = prices.get("agency_rate", 0.15)
+    agency_fee  = round(total_bruto * _agency_rate) if data.get("agency") else 0
     total_cc    = (total_bruto + agency_fee) * (1 + CC_RATE)
     cc_fee      = round(total_cc - (total_bruto + agency_fee))
     usd_ref     = total_cc / exchange
@@ -1051,8 +1054,11 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
                 col, _ = cm[key]
                 flags[f"{col}8"] = 1
                 active_cols.append(col)
-        # C23: comissão agência — 0 para reserva direta, taxa do PLANNER se com agência
-        flags["C23"] = prices.get("agency_rate", 0.15) if data.get("agency") else 0
+        # C23: comissão agência — 0 para reserva direta, taxa do PLANNER (ou override do admin) se com agência
+        _agency_rate = data.get("agency_rate_override")
+        if _agency_rate is None:
+            _agency_rate = prices.get("agency_rate", 0.15)
+        flags["C23"] = _agency_rate if data.get("agency") else 0
         flags["C24"] = prices.get("cc_rate", 0.04)
         updates[sheet_map["BUDGET RESUMO"]] = flags
 
