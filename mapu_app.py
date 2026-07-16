@@ -373,6 +373,11 @@ with st.form("orcamento"):
 
     st.markdown("### Comercial")
     agency      = st.checkbox("Com agência (15%)", value=True)
+    extra_discount_pct = 0.0
+    if agency_info.get("is_admin"):
+        extra_discount_pct = st.number_input(
+            "Desconto extra (%)", min_value=0.0, max_value=100.0, value=0.0, step=1.0,
+        ) / 100
     adjustments = {}
 
     extras_sel = {}
@@ -424,6 +429,7 @@ if submitted:
         "meals":            meals,
         "mapu_team":        0,
         "agency":           agency,
+        "extra_discount_pct": extra_discount_pct,
         "adjustments":      adjustments,
         "lang":             lang,
         "email_cliente":    email.strip(),

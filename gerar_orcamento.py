@@ -345,6 +345,7 @@ TRANSLATIONS = {
         "res_quincho": "Quincho",
         "res_equipe":  "Equipo MAPU",
         "res_agencia": "Comisión agencia",
+        "res_desconto": "Descuento {pct}%",
         "res_cc":      "Tarifa tarjeta de crédito (CC)",
         "res_subtotal":"Subtotal neto",
         "res_iva":     "IVA 19% (se aplicável)",
@@ -429,6 +430,7 @@ TRANSLATIONS = {
         "res_quincho": "Quincho",
         "res_equipe":  "MAPU Team",
         "res_agencia": "Agency fee",
+        "res_desconto": "Discount {pct}%",
         "res_cc":      "Credit card fee (CC)",
         "res_subtotal":"Net subtotal",
         "res_iva":     "VAT 19% (if applicable)",
@@ -848,7 +850,10 @@ def calculate(data, prices):
             cabin_breakdown[cabin]["meal_plan"]   = meal_plan
 
     mapu_team   = data["mapu_team"]
-    total_neto  = lodging + food + mapu_team
+    subtotal_pre_discount = lodging + food + mapu_team
+    extra_discount_pct = data.get("extra_discount_pct", 0) or 0
+    extra_discount_amt = round(subtotal_pre_discount * extra_discount_pct)
+    total_neto  = subtotal_pre_discount - extra_discount_amt
     iva         = round(total_neto * 0.19) if data.get("chilean_client") else 0
     total_bruto = total_neto + iva
     agency_fee  = round(total_bruto * prices.get("agency_rate", 0.15)) if data.get("agency") else 0
@@ -868,6 +873,8 @@ def calculate(data, prices):
         "food_embedded":    food_embedded,
         "meal_prices":      mp,
         "mapu_team":      mapu_team,
+        "extra_discount_pct": extra_discount_pct,
+        "extra_discount_amt": extra_discount_amt,
         "total":          total_neto,
         "iva":            iva,
         "total_bruto":    total_bruto,
@@ -1436,6 +1443,9 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
         resumo_lines.append((t["res_extras"],  calcs["extras"]))
     if calcs.get("quincho",     0) > 0:
         resumo_lines.append((t.get("res_quincho", "Quincho"), calcs["quincho"]))
+    if calcs.get("extra_discount_amt", 0) > 0:
+        pct_str = f"{calcs['extra_discount_pct']*100:.0f}"
+        resumo_lines.append((t["res_desconto"].format(pct=pct_str), -calcs["extra_discount_amt"]))
     if calcs.get("agency_fee",  0) > 0:
         resumo_lines.append((t["res_agencia"], calcs["agency_fee"]))
     if calcs.get("cc_fee",      0) > 0:
