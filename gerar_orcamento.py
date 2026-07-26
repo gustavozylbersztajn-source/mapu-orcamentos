@@ -51,6 +51,20 @@ if not FONT_DISPLAY.exists():
     FONT_HEAVY   = _ASSETS_FONTS / "FF_DIN_Condensed_Bold.otf"
     FONT_MEDIUM  = _ASSETS_FONTS / "FF_DIN_Condensed_Regular.otf"
 
+# Termos e Condições — anexados ao final de cada proposta, no idioma do orçamento
+_POLICIES_DIR = MAPU_ROOT / "2.OPERACIONAL" / "1.POLICIES"
+POLICY_PDF = {
+    "pt": _POLICIES_DIR / "PORT" / "MAPU_LODGE_SPA_Termos_Condicoes_PT.pdf",
+    "es": _POLICIES_DIR / "ESP"  / "MAPU_LODGE_SPA_Terminos_Condiciones_ES.pdf",
+    "en": _POLICIES_DIR / "ING"  / "MAPU_LODGE_SPA_Terms_Conditions_EN.pdf",
+}
+if not POLICY_PDF["en"].exists():
+    POLICY_PDF = {
+        "pt": _ASSETS / "policies" / "MAPU_LODGE_SPA_Termos_Condicoes_PT.pdf",
+        "es": _ASSETS / "policies" / "MAPU_LODGE_SPA_Terminos_Condiciones_ES.pdf",
+        "en": _ASSETS / "policies" / "MAPU_LODGE_SPA_Terms_Conditions_EN.pdf",
+    }
+
 # Modo nuvem: sem acesso ao Dropbox local
 IS_CLOUD = not MAPU_ROOT.exists()
 
@@ -1544,8 +1558,32 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
             pdf.cell(100, 4, line2, align="R")
 
     pdf.output(str(out))
+
+    if data.get("attach_policies", True):
+        _append_policy_pdf(out, lang)
+
     print(f"  ✓ PDF salvo:  {out.name}")
     return out
+
+
+def _append_policy_pdf(out_path, lang):
+    """Anexa o PDF de Termos e Condições (no idioma do orçamento) ao final da proposta."""
+    policy_path = POLICY_PDF.get(lang)
+    if not policy_path or not policy_path.exists():
+        return
+    try:
+        from pypdf import PdfReader, PdfWriter
+    except ImportError:
+        os.system("pip3 install pypdf --quiet")
+        from pypdf import PdfReader, PdfWriter
+
+    writer = PdfWriter()
+    for p in (out_path, policy_path):
+        reader = PdfReader(str(p))
+        for page in reader.pages:
+            writer.add_page(page)
+    with open(out_path, "wb") as f:
+        writer.write(f)
 
 
 # ── EMAIL ─────────────────────────────────────────────────────────────────────
