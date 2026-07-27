@@ -1027,6 +1027,33 @@ def _set_cell(xml_str, cell_ref, value):
     return xml_str[: m.start()] + new_cell + xml_str[m.end() :]
 
 
+def _reorder_budget_tabs(xml_str, active_sheet_names):
+    """Move as abas BUDGET das cabanas selecionadas pra logo à direita de RESULTADO."""
+    import re
+    if not active_sheet_names:
+        return xml_str
+    m = re.search(r'(<sheets>)(.*?)(</sheets>)', xml_str, re.DOTALL)
+    if not m:
+        return xml_str
+    tags = re.findall(r'<sheet\b[^>]*/>', m.group(2))
+
+    def _name(tag):
+        nm = re.search(r'name="([^"]*)"', tag)
+        return nm.group(1) if nm else None
+
+    rest_tags   = [t for t in tags if _name(t) not in active_sheet_names]
+    active_tags = [t for t in tags if _name(t) in active_sheet_names]
+    active_tags.sort(key=lambda t: active_sheet_names.index(_name(t)))
+
+    result_idx = next((i for i, t in enumerate(rest_tags) if _name(t) == "RESULTADO"), None)
+    if result_idx is None:
+        return xml_str
+
+    new_order = rest_tags[: result_idx + 1] + active_tags + rest_tags[result_idx + 1 :]
+    new_body  = "".join(new_order)
+    return xml_str[: m.start()] + m.group(1) + new_body + m.group(3) + xml_str[m.end() :]
+
+
 def populate_excel(data, client_path, slug, calcs, prices=None):
     if prices is None:
         prices = load_precos(checkin_year=data["checkin"].year, checkin_month=data["checkin"].month)
@@ -1108,6 +1135,7 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
 
         updates[sheet_map["BASE PAX"]] = bp_cells
 
+    active_sheet_names = []
     for cabin, pax in data["cabins"].items():
         key = (pax["adults"], pax["infants"])
         cm  = CABIN_MAP.get(cabin, {})
@@ -1118,6 +1146,7 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
         _, sheet_name = cm[key]
         if sheet_name not in sheet_map:
             continue
+        active_sheet_names.append(sheet_name)
         total_pax  = pax["adults"] + pax["infants"]
         needs_extra = total_pax > STANDARD_OCCUPANCY.get(cabin, 2)
         std_price  = prices["standard"][cabin]
@@ -1184,6 +1213,7 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
                         xml = _re.sub(r'<calcPr\b([^/]*)/>',
                                       r'<calcPr\1 fullCalcOnLoad="1"/>',
                                       xml)
+                    xml = _reorder_budget_tabs(xml, active_sheet_names)
                     raw = xml.encode("utf-8")
                 zout.writestr(item, raw)
     _os.replace(tmp, str(out))
