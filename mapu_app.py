@@ -77,6 +77,7 @@ if _approve_key:
     ag_email   = p.get("age", "—")
     ag_phone   = p.get("agp", "—")
     ag_user    = p.get("agu", "")
+    client_email = p.get("cle", "")
     # Decodifica pax por cabana: "COIGUE:2:0,NIRE:1:1"
     _pax_str = p.get("pax", "")
     cabins_with_pax = {}
@@ -88,7 +89,9 @@ if _approve_key:
         cabins_with_pax = {c: {} for c in cabins_str.split(",")}
 
     st.markdown(f"**Agência:** {ag_name} · {ag_contact} · {ag_email}")
-    st.markdown(f"**Cliente:** {client_raw}")
+    st.markdown(f"**Cliente:** {client_raw}" + (f" · {client_email}" if client_email else ""))
+    _destino = client_email or ag_email
+    st.caption(f"📧 PDF será enviado para: **{_destino}**")
     st.markdown(f"**Check-in:** {checkin} · **Check-out:** {checkout} · **{nights} noite(s)**")
     st.markdown(f"**Cabanas:** {cabins_str}")
     if total_cc:
@@ -104,6 +107,7 @@ if _approve_key:
                 st.warning("PDF não encontrado no Dropbox — email será enviado sem anexo.")
             data_min = {
                 "client_raw":    client_raw,
+                "email_cliente": client_email,
                 "agency_name":   ag_name,
                 "agency_contact": ag_contact,
                 "agency_email":  ag_email,
@@ -116,7 +120,7 @@ if _approve_key:
             calcs_min = {"total_cc": total_cc}
             ok = m.send_approved_budget_email(data_min, calcs_min, pdf_path)
         if ok:
-            st.success(f"PDF enviado para {ag_email}")
+            st.success(f"PDF enviado para {_destino}")
         else:
             st.error("Erro ao enviar — verifique configuração SMTP.")
 

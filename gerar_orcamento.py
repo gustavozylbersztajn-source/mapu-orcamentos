@@ -2059,6 +2059,7 @@ def send_approval_notification(data, calcs, pdf_path, app_url="http://localhost:
         "age": data.get("agency_email", ""),
         "agp": data.get("agency_phone", ""),
         "agu": data.get("agency_user", ""),
+        "cle": data.get("email_cliente", ""),
     }
     approve_url = f"{app_url}?{urllib.parse.urlencode(params)}"
 
@@ -2137,17 +2138,20 @@ def send_approval_notification(data, calcs, pdf_path, app_url="http://localhost:
 
 
 def send_approved_budget_email(data, calcs, pdf_path):
-    """Envia PDF aprovado para o contato da agência."""
+    """Envia PDF aprovado — pro email do cliente se informado, senão pro contato da agência."""
     cfg = load_smtp_config()
     if not cfg:
         return False
 
-    ag_email   = data.get("agency_email", "")
-    ag_contact = data.get("agency_contact", "")
-    ag_name    = data.get("agency_name", "")
-    if not ag_email:
-        print("  ⚠ Email da agência não encontrado")
+    client_email = data.get("email_cliente", "")
+    ag_email     = data.get("agency_email", "")
+    ag_contact   = data.get("agency_contact", "")
+    ag_name      = data.get("agency_name", "")
+    to_email     = client_email or ag_email
+    if not to_email:
+        print("  ⚠ Nenhum email de destino encontrado (cliente ou agência)")
         return False
+    greeting_name = data.get("client_raw", "") if client_email else ag_contact
 
     def _fmt(d):
         if hasattr(d, "strftime"):
@@ -2164,7 +2168,7 @@ def send_approved_budget_email(data, calcs, pdf_path):
 
     msg = MIMEMultipart()
     msg["From"]    = cfg["smtp_user"]
-    msg["To"]      = ag_email
+    msg["To"]      = to_email
     msg["Subject"] = f"MAPU — Orçamento aprovado: {data['client_raw']}"
 
     nights = data.get("nights", "—")
@@ -2195,7 +2199,7 @@ def send_approved_budget_email(data, calcs, pdf_path):
   <!-- Body -->
   <div style="padding:28px 32px">
     <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6">
-      Olá <b>{ag_contact}</b>, o orçamento para <b>{data['client_raw']}</b> foi aprovado.<br>Segue em anexo o PDF para envio ao cliente.
+      {"Olá <b>" + greeting_name + "</b>, segue em anexo seu orçamento MAPU aprovado." if client_email else "Olá <b>" + greeting_name + "</b>, o orçamento para <b>" + data['client_raw'] + "</b> foi aprovado.<br>Segue em anexo o PDF para envio ao cliente."}
     </p>
 
     <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
@@ -2242,11 +2246,11 @@ def send_approved_budget_email(data, calcs, pdf_path):
         with smtplib.SMTP(cfg["smtp_host"], cfg["smtp_port"]) as server:
             server.starttls()
             server.login(cfg["smtp_user"], cfg["smtp_pass"])
-            server.sendmail(cfg["smtp_user"], ag_email, msg.as_string())
-        print(f"  ✓ PDF aprovado enviado para {ag_email}")
+            server.sendmail(cfg["smtp_user"], to_email, msg.as_string())
+        print(f"  ✓ PDF aprovado enviado para {to_email}")
         return True
     except Exception as e:
-        print(f"  ⚠ Erro ao enviar para agência: {e}")
+        print(f"  ⚠ Erro ao enviar: {e}")
         return False
 
 
