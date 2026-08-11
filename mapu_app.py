@@ -333,9 +333,9 @@ tipo = 1
 date_fmt = "MM/DD/YYYY" if idioma == "English" else "DD/MM/YYYY"
 col1, col2 = st.columns(2)
 is_internal = agency_info.get("is_internal", False) or agency_info.get("is_admin", False)
-min_nights = 1 if is_internal else 3
+min_nights = 2
 checkin  = col1.date_input("Check-in",  value=date.today() + timedelta(days=30), format=date_fmt)
-checkout = col2.date_input("Check-out", value=checkin + timedelta(days=min_nights), min_value=checkin + timedelta(days=1 if is_internal else min_nights), format=date_fmt)
+checkout = col2.date_input("Check-out", value=checkin + timedelta(days=min_nights), min_value=checkin + timedelta(days=min_nights), format=date_fmt)
 nights = max((checkout - checkin).days, 0)
 st.caption(f"{nights} noite(s)")
 
@@ -397,8 +397,8 @@ if submitted:
         errors.append("Selecione ao menos uma cabana.")
     if checkout <= checkin:
         errors.append("Check-out deve ser após check-in.")
-    if not is_internal and 0 < (checkout - checkin).days < 3:
-        errors.append("Mínimo de 3 noites.")
+    if 0 < (checkout - checkin).days < 2:
+        errors.append("Mínimo de 2 noites.")
 
     if errors:
         for e in errors:
