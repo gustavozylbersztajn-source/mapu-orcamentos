@@ -368,23 +368,17 @@ with st.form("orcamento"):
                 cabins_data[cab] = {"adults": int(adults), "infants": int(infants)}
 
     st.markdown("### Refeições")
-    _month = checkin.month
-    _meia_pensao = _month in (12, 1, 2, 3)
-    if _meia_pensao:
-        st.info(f"🍽️ **Meia pensão incluída** — café da manhã + jantar × {nights} noite(s) (Temporada Dez–Mar)")
-    else:
-        st.info(f"☕ **Café da manhã incluído** × {nights} noite(s) (Baixa temporada Abr–Nov)")
+    incluir_cafe = st.checkbox("☕ Incluir café da manhã (por pessoa)", value=True)
 
-    st.markdown("### Comercial")
-    _agency_label = "Com agência" if agency_info.get("is_admin") else "Com agência (15%)"
-    agency = st.checkbox(_agency_label, value=True)
+    st.markdown("### Comissões | Agências")
+    _pode_ajustar = agency_info.get("is_admin") or agency_info.get("is_internal")
+    agency = st.checkbox("Com agência", value=True)
     agency_rate_override = None
-    if agency_info.get("is_admin") and agency:
-        agency_rate_override = st.number_input(
-            "Taxa de agência (%)", min_value=0.0, max_value=100.0, value=15.0, step=1.0,
-        ) / 100
+    if _pode_ajustar and agency:
+        _comissao_pct = st.selectbox("% de comissão", [10, 15, 20], index=1)
+        agency_rate_override = _comissao_pct / 100
     extra_discount_pct = 0.0
-    if agency_info.get("is_admin"):
+    if _pode_ajustar:
         extra_discount_pct = st.number_input(
             "Desconto extra (%)", min_value=0.0, max_value=100.0, value=0.0, step=1.0,
         ) / 100
@@ -414,11 +408,9 @@ if submitted:
     lang_map = {"Português": "pt", "Español": "es", "English": "en"}
     lang = lang_map[idioma]
 
-    _month = checkin.month
     meals = {}
-    meals["breakfast"] = nights
-    if _month in (12, 1, 2, 3):
-        meals["dinner"] = nights
+    if incluir_cafe:
+        meals["breakfast"] = nights
 
     total_adults  = sum(v["adults"]  for v in cabins_data.values())
     total_infants = sum(v["infants"] for v in cabins_data.values())

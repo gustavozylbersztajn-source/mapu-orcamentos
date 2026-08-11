@@ -279,10 +279,25 @@ TRANSLATIONS = {
         "res_subtotal": "Subtotal neto",
         "res_iva":     "IVA 19% (se aplicável)",
         "total_label": "TOTAL  CLP",
+        "total_label_moeda": "(Pesos Chilenos)",
         "total_cc_note": "*Valor com taxa de cartão de crédito (CC) incluída",
-        "usd_ref":     "Referência USD (câmbio {rate} CLP/USD)",
+        "usd_ref":     "VALOR TOTAL EQUIVALENTE EM USD (câmbio {rate} CLP/USD)",
         "por_adulto":  "Por adulto (÷ {n})",
         "rodape":      "Valores em CLP · Válido 7 dias",
+        "formas_pagto_title": "FORMAS DE PAGAMENTO",
+        "formas_pagto_metodos": "Cartão de crédito (Visa/Mastercard/Amex) ou transferência bancária internacional.",
+        "formas_pagto_prazo": "25% de sinal para confirmar a reserva ({sinal}). Saldo de 75% ({saldo}) até o check-in.",
+        "pagamentos_title": "PAGAMENTOS",
+        "saldo_label": "Saldo a pagar",
+        "balance_due_note": "Saldo a pagar até {date}",
+        "bank_title":   "DADOS PARA TRANSFERÊNCIA",
+        "bank_bank":    "Banco",
+        "bank_holder":  "Titular",
+        "bank_account": "Conta corrente",
+        "bank_rut":     "RUT",
+        "bank_swift":   "SWIFT",
+        "bank_address": "Endereço",
+        "bank_email":   "Email",
         "meals": {
             "breakfast": "Café da manhã",
             "dinner":    "Jantar",
@@ -364,10 +379,25 @@ TRANSLATIONS = {
         "res_subtotal":"Subtotal neto",
         "res_iva":     "IVA 19% (se aplicável)",
         "total_label": "TOTAL  CLP",
+        "total_label_moeda": "(Pesos Chilenos)",
         "total_cc_note": "*Valor con tarifa de tarjeta de crédito (CC) incluida",
-        "usd_ref":     "Referencia USD (cambio {rate} CLP/USD)",
+        "usd_ref":     "VALOR TOTAL EQUIVALENTE EN USD (cambio {rate} CLP/USD)",
         "por_adulto":  "Por adulto (÷ {n})",
         "rodape":      "Valores en CLP · Válido 7 días",
+        "formas_pagto_title": "FORMAS DE PAGO",
+        "formas_pagto_metodos": "Tarjeta de crédito (Visa/Mastercard/Amex) o transferencia bancaria internacional.",
+        "formas_pagto_prazo": "25% de anticipo para confirmar la reserva ({sinal}). Saldo de 75% ({saldo}) hasta el check-in.",
+        "pagamentos_title": "PAGOS",
+        "saldo_label": "Saldo a pagar",
+        "balance_due_note": "Saldo a pagar hasta el {date}",
+        "bank_title":   "DATOS PARA TRANSFERENCIA",
+        "bank_bank":    "Banco",
+        "bank_holder":  "Titular",
+        "bank_account": "Cuenta corriente",
+        "bank_rut":     "RUT",
+        "bank_swift":   "SWIFT",
+        "bank_address": "Dirección",
+        "bank_email":   "Email",
         "meals": {
             "breakfast": "Desayuno",
             "dinner":    "Cena",
@@ -449,10 +479,25 @@ TRANSLATIONS = {
         "res_subtotal":"Net subtotal",
         "res_iva":     "VAT 19% (if applicable)",
         "total_label": "TOTAL  CLP",
+        "total_label_moeda": "(Chilean Pesos)",
         "total_cc_note": "*Amount includes credit card fee (CC)",
-        "usd_ref":     "USD reference (rate {rate} CLP/USD)",
+        "usd_ref":     "TOTAL USD EQUIVALENT VALUE (rate {rate} CLP/USD)",
         "por_adulto":  "Per adult (÷ {n})",
         "rodape":      "Values in CLP · Valid 7 days",
+        "formas_pagto_title": "PAYMENT METHODS",
+        "formas_pagto_metodos": "Credit card (Visa/Mastercard/Amex) or international bank transfer.",
+        "formas_pagto_prazo": "25% deposit to confirm the reservation ({sinal}). Remaining 75% balance ({saldo}) due by check-in.",
+        "pagamentos_title": "PAYMENTS",
+        "saldo_label": "Balance due",
+        "balance_due_note": "Balance due by {date}",
+        "bank_title":   "BANK TRANSFER DETAILS",
+        "bank_bank":    "Bank",
+        "bank_holder":  "Account holder",
+        "bank_account": "Checking account",
+        "bank_rut":     "Tax ID (RUT)",
+        "bank_swift":   "SWIFT",
+        "bank_address": "Address",
+        "bank_email":   "Email",
         "meals": {
             "breakfast": "Breakfast",
             "dinner":    "Dinner",
@@ -497,7 +542,7 @@ def fmt_clp(v):
     return "$ " + f"{int(round(v)):,}".replace(",", ".")
 
 def fmt_usd(v):
-    return "~$ " + f"{int(round(v)):,}".replace(",", ".")
+    return "$ " + f"{int(round(v)):,}".replace(",", ".")
 
 def date_fmt(d, lang="pt"):
     t = TRANSLATIONS.get(lang, TRANSLATIONS["pt"])
@@ -598,8 +643,8 @@ def _load_precos_json(is_alta):
 
 
 def load_precos(checkin_year=None, checkin_month=None):
-    """Lê preços de MAPU_PLANNER.xlsx — Alta (Jan·Fev·Dez) vs Baixa (Mar–Nov)."""
-    is_alta = checkin_month in (1, 2, 12) if checkin_month else False
+    """Lê preços de MAPU_PLANNER.xlsx — Alta (Dez·Jan·Fev·Mar) vs Baixa (Abr–Nov)."""
+    is_alta = checkin_month in (1, 2, 3, 12) if checkin_month else False
     if IS_CLOUD or not PLANNER_XLSX.exists():
         return _load_precos_json(is_alta)
     wb = openpyxl.load_workbook(str(PLANNER_XLSX), data_only=True)
@@ -684,17 +729,13 @@ def collect_inputs():
 
     print("\n── REFEIÇÕES ────────────────────────────────────────")
     meals = {}
-    # Dez–Mar = meia pensão (café + jantar); Abr–Nov = só café
-    _month = checkin.month
-    _meia_pensao = _month in (12, 1, 2, 3)
-    if _meia_pensao:
-        print(f"  Temporada (Dez–Mar): meia pensão automática — café + jantar × {nights} noites")
+    # Café da manhã é opcional, por pessoa. Jantar ainda não é oferecido (serviço de comida a definir a partir de meio de novembro).
+    _inc_cafe = prompt("  Incluir café da manhã? (s/n)", "s").strip().lower()
+    if _inc_cafe in ("s", "sim", "y", "yes"):
+        print(f"  Café da manhã × {nights} noites")
         meals["breakfast"] = nights
-        meals["dinner"]    = nights
     else:
-        print(f"  Baixa temporada (Abr–Nov): café da manhã incluído × {nights} noites")
-        meals["breakfast"] = nights
-        meals["dinner"]    = 0
+        print("  Sem café da manhã")
 
     extras_sel = {}
     if tipo == 2:
@@ -1414,6 +1455,16 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
         pdf.set_xy(LX, ly)
         pdf.cell(LW, 5.5, fmt_clp(calcs["food"]))
         ly += 10
+    elif data.get("food_notes"):
+        # Sem refeição embutida no total, mas com informações/observações (ex: café opcional à parte, jantar a definir)
+        ly = sec(LX, ly, LW, t["sec_food"], calcs["meal_plan"])
+        pdf.set_font("Medium", size=7.5)
+        pdf.set_text_color(*_GL)
+        for note in data["food_notes"]:
+            pdf.set_xy(LX, ly)
+            pdf.multi_cell(LW, 4, note)
+            ly = pdf.get_y() + 1
+        ly += 6
 
     # SEÇÕES EXTRAS (Tipo 2)
     total_pax = data.get("total_adults", 0) + data.get("total_infants", 0)
@@ -1509,7 +1560,9 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
         ry += 4.5
     ry += 3
 
-    # Caixa TOTAL
+    hide_footer_info = data.get("hide_footer_info", False)
+
+    # Caixa TOTAL (primeiro)
     box_h = 11.0
     pdf.set_fill_color(*_BOX)
     pdf.rect(RX - 2, ry, RW + 2, box_h, "F")
@@ -1517,44 +1570,131 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
     pdf.set_text_color(*_WHITE)
     pdf.set_xy(RX, ry + 1.5)
     pdf.cell(38, 6, t["total_label"])
+    pdf.set_font("Medium", size=5.5)
+    pdf.set_xy(RX, ry + 6.3)
+    pdf.cell(38, 3, t["total_label_moeda"])
     pdf.set_font("Disp", size=17)
     pdf.set_xy(RX, ry + 0.5)
     pdf.cell(RW, box_h - 1, fmt_clp(calcs["total_cc"]), align="R")
     ry += box_h + 2.5
 
-    pdf.set_font("Medium", size=6.5)
-    pdf.set_text_color(*_GL)
-    pdf.set_xy(RX, ry)
-    pdf.cell(RW, 3.5, t["total_cc_note"], align="R")
-    ry += 5.5
+    if not hide_footer_info:
+        # USD equivalente (logo depois do total)
+        pdf.set_font("Heavy", size=6.8)
+        pdf.set_text_color(*_GL)
+        usd_val = "$ " + f"{int(round(calcs['usd_ref'])):,}".replace(",", ".") + " USD"
+        pdf.set_xy(RX, ry)
+        pdf.cell(RW * 0.58, 4.5, t["usd_ref"].format(rate=exchange))
+        pdf.set_font("Heavy", size=8)
+        pdf.set_xy(RX + RW * 0.58, ry)
+        pdf.cell(RW * 0.42, 4.5, usd_val, align="R")
+        ry += 6
 
-    # IVA informativo (depois do total)
-    iva_info = round(calcs["total"] * 0.19)
-    pdf.set_font("Medium", size=8)
-    pdf.set_text_color(*_WHITE)
-    pdf.set_xy(RX, ry)
-    pdf.cell(RW * 0.58, 4.5, t["res_iva"])
-    pdf.set_xy(RX + RW * 0.58, ry)
-    pdf.cell(RW * 0.42, 4.5, fmt_clp(iva_info), align="R")
-    ry += 6
+        # IVA informativo
+        iva_info = round(calcs["total"] * 0.19)
+        pdf.set_font("Medium", size=8)
+        pdf.set_text_color(*_WHITE)
+        pdf.set_xy(RX, ry)
+        pdf.cell(RW * 0.58, 4.5, t["res_iva"])
+        pdf.set_xy(RX + RW * 0.58, ry)
+        pdf.cell(RW * 0.42, 4.5, fmt_clp(iva_info), align="R")
+        ry += 4.5
 
-    # USD + por adulto
-    pdf.set_font("Heavy", size=8)
-    pdf.set_text_color(*_GL)
-    usd_val = "~$ " + f"{int(round(calcs['usd_ref'])):,}".replace(",", ".") + " USD"
-    pdf.set_xy(RX, ry)
-    pdf.cell(RW * 0.58, 4.5, t["usd_ref"].format(rate=exchange))
-    pdf.set_xy(RX + RW * 0.58, ry)
-    pdf.cell(RW * 0.42, 4.5, usd_val, align="R")
-    ry += 4.5
+        ry += 4
 
-    ry += 4
+    # FORMAS DE PAGAMENTO (padrão — aparece em todo orçamento) — por último
+    if not hide_footer_info:
+        pdf.set_font("Heavy", size=8)
+        pdf.set_text_color(*_WHITE)
+        pdf.set_xy(RX, ry)
+        pdf.cell(RW, 4.5, t["formas_pagto_title"])
+        ry += 5
+        pdf.set_font("Medium", size=7)
+        pdf.set_text_color(*_GL)
+        pdf.set_xy(RX, ry)
+        pdf.multi_cell(RW, 3.3, t["formas_pagto_metodos"])
+        ry = pdf.get_y() + 0.5
+        pdf.set_xy(RX, ry)
+        sinal_val = round(calcs["total_cc"] * 0.25)
+        saldo_val = calcs["total_cc"] - sinal_val
+        pdf.multi_cell(RW, 3.3, t["formas_pagto_prazo"].format(
+            sinal=fmt_clp(sinal_val), saldo=fmt_clp(saldo_val)))
+        ry = pdf.get_y()
+        ry += 3
 
-    ry += 2
-    pdf.set_font("Heavy", size=8)
-    pdf.set_text_color(*_GL)
-    pdf.set_xy(RX, ry)
-    pdf.cell(RW, 4.5, t["rodape"])
+    # OBSERVAÇÕES (opcional) — notas informativas extras (ex: café opcional não incluso, jantar a definir)
+    notes = data.get("notes", [])
+    if notes:
+        ry += 4
+        pdf.set_font("Medium", size=7)
+        pdf.set_text_color(*_GL)
+        for note in notes:
+            pdf.set_xy(RX, ry)
+            pdf.multi_cell(RW, 3.3, note, align="R")
+            ry = pdf.get_y() + 1
+
+    # PAGAMENTOS (opcional)
+    payments = data.get("payments", [])
+    if payments:
+        ry += 8
+        pdf.set_font("Heavy", size=8)
+        pdf.set_text_color(*_WHITE)
+        pdf.set_xy(RX, ry)
+        pdf.cell(RW, 5, t["pagamentos_title"])
+        pdf.set_draw_color(*_LINE)
+        pdf.line(RX, ry + 6, RX + RW, ry + 6)
+        ry += 10.0
+        total_paid = 0
+        for p in payments:
+            pdf.set_font("Medium", size=9.5)
+            pdf.set_text_color(*_GL)
+            pdf.set_xy(RX, ry)
+            pdf.cell(RW * 0.58, 5.5, p["label"])
+            pdf.set_xy(RX + RW * 0.58, ry)
+            pdf.cell(RW * 0.42, 5.5, fmt_clp(p["amount"]), align="R")
+            total_paid += p["amount"]
+            ry += 5.5
+        saldo = calcs["total_cc"] - total_paid
+        ry += 3
+        pdf.set_font("Heavy", size=11)
+        pdf.set_text_color(*_WHITE)
+        pdf.set_xy(RX, ry)
+        pdf.cell(RW * 0.58, 6, t["saldo_label"])
+        pdf.set_xy(RX + RW * 0.58, ry)
+        pdf.cell(RW * 0.42, 6, fmt_clp(saldo), align="R")
+        ry += 8
+
+        if data.get("balance_due_date"):
+            pdf.set_font("Medium", size=7.5)
+            pdf.set_text_color(*_GL)
+            pdf.set_xy(RX, ry)
+            pdf.cell(RW, 4, t["balance_due_note"].format(date=data["balance_due_date"]), align="R")
+            ry += 6
+
+        bank = data.get("bank_details")
+        if bank:
+            pdf.set_font("Heavy", size=7.5)
+            pdf.set_text_color(*_WHITE)
+            pdf.set_xy(RX, ry)
+            pdf.cell(RW, 4, t["bank_title"], align="R")
+            ry += 4.5
+            pdf.set_font("Medium", size=7)
+            pdf.set_text_color(*_GL)
+            bank_fields = [
+                (t["bank_bank"],    bank.get("bank")),
+                (t["bank_holder"],  bank.get("holder")),
+                (t["bank_account"], bank.get("account")),
+                (t["bank_rut"],     bank.get("rut")),
+                (t["bank_swift"],   bank.get("swift")),
+                (t["bank_address"], bank.get("address")),
+                (t["bank_email"],   bank.get("email")),
+            ]
+            for label, val in bank_fields:
+                if not val:
+                    continue
+                pdf.set_xy(RX, ry)
+                pdf.cell(RW, 3.8, f"{label}: {val}", align="R")
+                ry += 3.8
 
     # FOOTER
     logo = LOGO_WHITE if LOGO_WHITE.exists() else LOGO_PATH
@@ -1786,6 +1926,18 @@ def _resolve_external_links(xlsx_path):
     ext_key = 'xl/externalLinks/externalLink1.xml'
     if ext_key not in file_data:
         return  # sem links externos, nada a fazer
+
+    # Esta função só sabe resolver o link antigo (formato [1]PRECOS!$B$XX, sem
+    # aspas/espaço/emoji no nome da aba). Link novo (ex: '[1]⚙️ INPUTS'!$B$6,
+    # com aspas por causa do espaço/emoji) não bate com esse padrão — nesse
+    # caso não mexer em nada e deixar o Excel resolver sozinho no osascript
+    # (o dialog "Update Links" já é tratado lá).
+    old_style_link = any(
+        re.search(r'\[1\][A-Z_]+!\$', file_data[name].decode('utf-8', errors='ignore'))
+        for name in file_data if name.startswith('xl/worksheets/')
+    )
+    if not old_style_link:
+        return
 
     # Lê valores em cache do externalLink XML como fallback
     cached = {}
