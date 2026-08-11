@@ -448,6 +448,19 @@ if submitted:
     with st.spinner("Gerando orçamento..."):
         try:
             prices = m.load_precos(checkin_year=checkin.year, checkin_month=checkin.month)
+
+            if not incluir_cafe:
+                _mp = prices.get("meal_prices") or {}
+                _bkf = _mp.get("breakfast", {"adult": 24_000, "child": 18_000})
+                _t = m.TRANSLATIONS.get(lang, m.TRANSLATIONS["pt"])
+                data["food_notes"] = [
+                    _t["food_note_breakfast"].format(
+                        adult=f"{_bkf['adult']:,.0f}".replace(",", "."),
+                        child=f"{_bkf['child']:,.0f}".replace(",", "."),
+                    ),
+                    _t["food_note_dinner"],
+                ]
+
             calcs  = m.calculate(data, prices)
 
             for key in ("beverages", "activities", "transport", "experiences", "extras", "quincho"):
@@ -518,4 +531,5 @@ if st.session_state.get("generated"):
     st.metric(_hosp_lbl, f"CLP {_calcs['lodging']:,.0f}".replace(",", "."))
     if _calcs.get("food", 0) > 0:
         st.metric("Alimentação", f"CLP {_calcs['food']:,.0f}".replace(",", "."))
-    st.metric("TOTAL (c/ 4% CC)", f"CLP {_calcs['total_cc']:,.0f}".replace(",", "."))
+    _cc_pct = round(_calcs.get("cc_rate", 0.05) * 100)
+    st.metric(f"TOTAL (c/ {_cc_pct}% CC)", f"CLP {_calcs['total_cc']:,.0f}".replace(",", "."))

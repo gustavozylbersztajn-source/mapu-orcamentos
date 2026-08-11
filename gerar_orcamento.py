@@ -287,6 +287,8 @@ TRANSLATIONS = {
         "formas_pagto_title": "FORMAS DE PAGAMENTO",
         "formas_pagto_metodos": "Cartão de crédito (Visa/Mastercard/Amex) ou transferência bancária internacional.",
         "formas_pagto_prazo": "25% de sinal para confirmar a reserva ({sinal}). Saldo de 75% ({saldo}) até o check-in.",
+        "food_note_breakfast": "Café da manhã (opcional): CL$ {adult} por adulto e CL$ {child} por criança, por noite — não incluído no valor total, cobrado à parte caso desejem adicionar.",
+        "food_note_dinner": "Jantar: em breve teremos definidas as opções de jantar para alta temporada 2027 — assim que confirmado, compartilharemos os detalhes com vocês.",
         "pagamentos_title": "PAGAMENTOS",
         "saldo_label": "Saldo a pagar",
         "balance_due_note": "Saldo a pagar até {date}",
@@ -387,6 +389,8 @@ TRANSLATIONS = {
         "formas_pagto_title": "FORMAS DE PAGO",
         "formas_pagto_metodos": "Tarjeta de crédito (Visa/Mastercard/Amex) o transferencia bancaria internacional.",
         "formas_pagto_prazo": "25% de anticipo para confirmar la reserva ({sinal}). Saldo de 75% ({saldo}) hasta el check-in.",
+        "food_note_breakfast": "Desayuno (opcional): CL$ {adult} por adulto y CL$ {child} por niño, por noche — no incluido en el valor total, se cobra aparte si desean agregarlo.",
+        "food_note_dinner": "Cena: pronto tendremos definidas las opciones de cena para la temporada alta 2027 — en cuanto esté confirmado, compartiremos los detalles con ustedes.",
         "pagamentos_title": "PAGOS",
         "saldo_label": "Saldo a pagar",
         "balance_due_note": "Saldo a pagar hasta el {date}",
@@ -487,6 +491,8 @@ TRANSLATIONS = {
         "formas_pagto_title": "PAYMENT METHODS",
         "formas_pagto_metodos": "Credit card (Visa/Mastercard/Amex) or international bank transfer.",
         "formas_pagto_prazo": "25% deposit to confirm the reservation ({sinal}). Remaining 75% balance ({saldo}) due by check-in.",
+        "food_note_breakfast": "Breakfast (optional): CL$ {adult} per adult and CL$ {child} per child, per night — not included in the total amount, charged separately if you'd like to add it.",
+        "food_note_dinner": "Dinner: we'll soon have the dinner options defined for the 2027 high season — as soon as confirmed, we'll share the details with you.",
         "pagamentos_title": "PAYMENTS",
         "saldo_label": "Balance due",
         "balance_due_note": "Balance due by {date}",
@@ -633,7 +639,7 @@ def _fetch_exchange_rate(default=900):
 
 # ── CARREGAR PREÇOS ────────────────────────────────────────────────────────────
 def _load_precos_json(is_alta):
-    """Fallback: lê preços de precos.json quando PLANNER não está disponível."""
+    """Último fallback: lê preços de precos.json quando PLANNER não está disponível nem local nem via Dropbox."""
     for p in (Path(__file__).parent / "precos.json", _ASSETS / "precos.json"):
         if p.exists():
             data = json.loads(p.read_text())
@@ -642,12 +648,8 @@ def _load_precos_json(is_alta):
     raise FileNotFoundError("precos.json não encontrado")
 
 
-def load_precos(checkin_year=None, checkin_month=None):
-    """Lê preços de MAPU_PLANNER.xlsx — Alta (Dez·Jan·Fev·Mar) vs Baixa (Abr–Nov)."""
-    is_alta = checkin_month in (1, 2, 3, 12) if checkin_month else False
-    if IS_CLOUD or not PLANNER_XLSX.exists():
-        return _load_precos_json(is_alta)
-    wb = openpyxl.load_workbook(str(PLANNER_XLSX), data_only=True)
+def _extract_precos_from_workbook(wb, is_alta):
+    """Lê os preços da aba ⚙️ INPUTS de um workbook MAPU_PLANNER já aberto (local ou baixado do Dropbox)."""
     ws = wb["⚙️ INPUTS"]
     iva          = ws["B32"].value or 0.19
     cc_rate      = ws["B33"].value or 0.04
@@ -666,7 +668,6 @@ def load_precos(checkin_year=None, checkin_month=None):
         "cc_rate":     cc_rate,
     }
 
-    # Lê preços de refeição direto do MAPU_PLANNER INPUTS (fonte única)
     bkf_adult = (ws["B16"].value if is_alta else ws["C16"].value) or 24_000
     bkf_child = (ws["B17"].value if is_alta else ws["C17"].value) or 16_800
     din_adult = ws["B21"].value or 55_000
@@ -675,8 +676,41 @@ def load_precos(checkin_year=None, checkin_month=None):
         "breakfast": {"adult": bkf_adult, "child": bkf_child},
         "dinner":    {"adult": din_adult, "child": din_child},
     }
-
     return prices
+
+
+def _load_precos_dropbox(is_alta):
+    """Baixa MAPU_PLANNER.xlsx do Dropbox via API e lê os preços — usado quando não há acesso
+    ao filesystem local (nuvem). Mantém o app sincronizado com a planilha viva sem precisar
+    regenerar precos.json manualmente a cada alteração de preço."""
+    dbx = _get_dropbox_client()
+    if not dbx:
+        return None
+    try:
+        import io
+        _, response = dbx.files_download(
+            "/Family Room/4.MAPU/3.PLANEJAMENTO/PLANEJAMENTO_GERAL/MAPU_PLANNER.xlsx")
+        wb = openpyxl.load_workbook(io.BytesIO(response.content), data_only=True)
+        return _extract_precos_from_workbook(wb, is_alta)
+    except Exception as e:
+        print(f"_load_precos_dropbox erro: {e}")
+        return None
+
+
+def load_precos(checkin_year=None, checkin_month=None):
+    """Lê preços de MAPU_PLANNER.xlsx — Alta (Dez·Jan·Fev·Mar) vs Baixa (Abr–Nov).
+    Ordem de prioridade: arquivo local → Dropbox API (nuvem) → precos.json (último recurso)."""
+    is_alta = checkin_month in (1, 2, 3, 12) if checkin_month else False
+
+    if not IS_CLOUD and PLANNER_XLSX.exists():
+        wb = openpyxl.load_workbook(str(PLANNER_XLSX), data_only=True)
+        return _extract_precos_from_workbook(wb, is_alta)
+
+    dropbox_prices = _load_precos_dropbox(is_alta)
+    if dropbox_prices is not None:
+        return dropbox_prices
+
+    return _load_precos_json(is_alta)
 
 
 # ── COLETAR INPUTS ─────────────────────────────────────────────────────────────
@@ -938,6 +972,7 @@ def calculate(data, prices):
         "total_bruto":    total_bruto,
         "agency_fee":     agency_fee,
         "cc_fee":         cc_fee,
+        "cc_rate":        CC_RATE,
         "total_cc":       total_cc,
         "usd_ref":        usd_ref,
         "per_adult":      per_adult,
@@ -2820,6 +2855,19 @@ def main():
 
     data   = collect_inputs()
     prices = load_precos(checkin_year=data["checkin"].year, checkin_month=data["checkin"].month)
+
+    if not data["meals"].get("breakfast"):
+        mp  = prices.get("meal_prices") or {}
+        bkf = mp.get("breakfast", {"adult": 24_000, "child": 18_000})
+        t   = TRANSLATIONS.get(data.get("lang", "pt"), TRANSLATIONS["pt"])
+        data["food_notes"] = [
+            t["food_note_breakfast"].format(
+                adult=f"{bkf['adult']:,.0f}".replace(",", "."),
+                child=f"{bkf['child']:,.0f}".replace(",", "."),
+            ),
+            t["food_note_dinner"],
+        ]
+
     calcs  = calculate(data, prices)
 
     print("\n── PRÉ-VISUALIZAÇÃO ─────────────────────────────────")
