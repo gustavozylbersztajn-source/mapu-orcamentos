@@ -671,9 +671,11 @@ def _load_precos_json(is_alta):
 
 
 def _extract_precos_from_workbook(wb, is_alta):
-    """Lê os preços da aba ⚙️ INPUTS de um workbook MAPU_PLANNER já aberto (local ou baixado do Dropbox)."""
+    """Lê os preços da aba ⚙️ INPUTS de um workbook MAPU_PLANNER já aberto (local ou baixado do Dropbox).
+    Preço da cabana fica SEM IVA — o IVA só é aplicado depois, em calculate(), e só quando
+    chilean_client=True (turista estrangeiro é isento). Nunca embutir IVA aqui."""
     ws = wb["⚙️ INPUTS"]
-    iva          = ws["B32"].value or 0.19
+    iva_rate     = ws["B32"].value or 0.19
     cc_rate      = ws["B33"].value or 0.04
     agency_rate  = ws["B34"].value or 0.20
 
@@ -681,13 +683,14 @@ def _extract_precos_from_workbook(wb, is_alta):
     base = {}
     for i, cabin in enumerate(cabin_order, start=6):
         sem_iva = (ws[f"B{i}"].value if is_alta else ws[f"C{i}"].value) or 0
-        base[cabin] = round(sem_iva * (1 + iva))
+        base[cabin] = round(sem_iva)
 
     prices = {
         "standard":    base,
         "long":        {k: round(v * 0.95) for k, v in base.items()},
         "agency_rate": agency_rate,
         "cc_rate":     cc_rate,
+        "iva_rate":    iva_rate,
     }
 
     bkf_adult = (ws["B16"].value if is_alta else ws["C16"].value) or 24_000
@@ -965,7 +968,7 @@ def calculate(data, prices):
     extra_discount_pct = data.get("extra_discount_pct", 0) or 0
     extra_discount_amt = round(subtotal_pre_discount * extra_discount_pct)
     total_neto  = subtotal_pre_discount - extra_discount_amt
-    iva         = round(total_neto * 0.19) if data.get("chilean_client") else 0
+    iva         = round(total_neto * prices.get("iva_rate", 0.19)) if data.get("chilean_client") else 0
     total_bruto = total_neto + iva
     _agency_rate = data.get("agency_rate_override")
     if _agency_rate is None:

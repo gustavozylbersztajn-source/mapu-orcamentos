@@ -1,16 +1,16 @@
 {
   "alta": {
     "standard": {
-      "COIGUE": 374850,
-      "NIRE": 404600,
-      "CHAITEN": 418880,
-      "CORCOVADO": 514080
+      "COIGUE": 315000,
+      "NIRE": 340000,
+      "CHAITEN": 352000,
+      "CORCOVADO": 432000
     },
     "long": {
-      "COIGUE": 356108,
-      "NIRE": 384370,
-      "CHAITEN": 397936,
-      "CORCOVADO": 488376
+      "COIGUE": 299250,
+      "NIRE": 323000,
+      "CHAITEN": 334400,
+      "CORCOVADO": 410400
     },
     "agency_rate": 0.2,
     "cc_rate": 0.05,
@@ -27,16 +27,16 @@
   },
   "baixa": {
     "standard": {
-      "COIGUE": 333200,
-      "NIRE": 357000,
-      "CHAITEN": 380800,
-      "CORCOVADO": 476000
+      "COIGUE": 280000,
+      "NIRE": 300000,
+      "CHAITEN": 320000,
+      "CORCOVADO": 400000
     },
     "long": {
-      "COIGUE": 316540,
-      "NIRE": 339150,
-      "CHAITEN": 361760,
-      "CORCOVADO": 452200
+      "COIGUE": 266000,
+      "NIRE": 285000,
+      "CHAITEN": 304000,
+      "CORCOVADO": 380000
     },
     "agency_rate": 0.2,
     "cc_rate": 0.05,
