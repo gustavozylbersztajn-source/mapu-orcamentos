@@ -332,7 +332,7 @@ tipo = 1
 
 date_fmt = "MM/DD/YYYY" if idioma == "English" else "DD/MM/YYYY"
 col1, col2 = st.columns(2)
-is_internal = agency_info.get("is_internal", False)
+is_internal = agency_info.get("is_internal", False) or agency_info.get("is_admin", False)
 min_nights = 1 if is_internal else 3
 checkin  = col1.date_input("Check-in",  value=date.today() + timedelta(days=30), format=date_fmt)
 checkout = col2.date_input("Check-out", value=checkin + timedelta(days=min_nights), min_value=checkin + timedelta(days=1 if is_internal else min_nights), format=date_fmt)
