@@ -1266,8 +1266,7 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
             "B5": pax["adults"], "B6": pax["infants"],
             "B15": 0, "B16": 0, "B17": 0, "B18": 0, "B19": 0, "B20": 0,
             "B24": 0, "B25": 0, "B26": 0, "B27": 0,
-            # C12 calibrado: RESULTADO aplica fator 0.95 → C12 = 1/0.95-1 faz D×0.95 = B exato
-            "C12": round(1/0.95 - 1, 8),
+            "C12": cc_rate,
             # Zera adição indevida de comissão no jantar
             "E47": 0, "E48": 0,
             # Corrige fórmulas café/jantar para incluir crianças (template 1-adulto tem fórmula incompleta)
