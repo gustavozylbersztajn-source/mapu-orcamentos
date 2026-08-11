@@ -604,10 +604,32 @@ def prompt_int(msg, default=0):
     except ValueError:
         return default
 
+def _find_template_dropbox():
+    """Baixa o template canônico (4.ORCAMENTOS/2027/template/planilha_orcamentos_python.xlsx)
+    direto do Dropbox pra um arquivo temporário. Mantém uma única planilha base real —
+    o app na nuvem não depende mais de uma cópia bundled que pode ficar desatualizada."""
+    dbx = _get_dropbox_client()
+    if not dbx:
+        return None
+    try:
+        import tempfile
+        _, response = dbx.files_download(
+            f"{DROPBOX_ROOT}/2027/template/planilha_orcamentos_python.xlsx")
+        tmp = Path(tempfile.gettempdir()) / "mapu_template_dropbox.xlsx"
+        tmp.write_bytes(response.content)
+        return tmp
+    except Exception as e:
+        print(f"_find_template_dropbox erro: {e}")
+        return None
+
+
 def find_template(checkin_year):
-    # Nuvem: usa template bundled nos assets
+    # Nuvem: tenta baixar o template ao vivo do Dropbox; cai pro bundled se falhar
     bundled = _ASSETS / "templates" / "planilha_orcamentos_python.xlsx"
     if IS_CLOUD:
+        live = _find_template_dropbox()
+        if live is not None:
+            return live
         return bundled if bundled.exists() else None
     search_years = sorted(set([checkin_year, checkin_year - 1, 2027]), reverse=True)
     for y in search_years:
