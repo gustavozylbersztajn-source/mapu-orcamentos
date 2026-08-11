@@ -1609,6 +1609,8 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
         resumo_lines.append((t["res_desconto"].format(pct=pct_str), -calcs["extra_discount_amt"]))
     if calcs.get("agency_fee",  0) > 0:
         resumo_lines.append((t["res_agencia"], calcs["agency_fee"]))
+    if calcs.get("cc_fee",      0) > 0:
+        resumo_lines.append((t["res_cc"], calcs["cc_fee"]))
     for label, val in resumo_lines:
         pdf.set_text_color(*_GL)
         pdf.set_xy(RX, ry)
@@ -2839,7 +2841,15 @@ def upload_budget_to_dropbox(pdf_path, xlsx_path, data):
     month = data["checkin"].strftime("%m")
     slug  = data["checkin"].strftime("%Y%m%d") + "_" + data["client"]
     ag    = data.get("agency_user", "agencia").upper()
-    folder = f"{DROPBOX_ROOT}/{year}/{month}/{slug}_{ag}/1. ORCAMENTO"
+    client_folder = f"{DROPBOX_ROOT}/{year}/{month}/{slug}_{ag}"
+    folder = f"{client_folder}/1. ORCAMENTO"
+
+    # Cria as demais subpastas (vazias) — "1. ORCAMENTO" é criada implicitamente pelo upload dos arquivos
+    for sub in SUBFOLDERS[1:]:
+        try:
+            dbx.files_create_folder_v2(f"{client_folder}/{sub}")
+        except _dbx.exceptions.ApiError:
+            pass  # já existe
 
     # Deriva data.json a partir do pdf_path (mesma pasta, mesmo slug)
     data_json = None
