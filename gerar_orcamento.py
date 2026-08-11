@@ -2483,18 +2483,17 @@ def download_pdf_from_dropbox(slug, agency_user):
         return None
     try:
         year, month = slug[:4], slug[4:6]
-        ag = agency_user.upper()
         # tenta os dois cases do nome da subpasta
         entries = None
-        for sub in (f"{DROPBOX_ROOT}/{year}/{month}/{slug}_{ag}/1. orcamento",
-                    f"{DROPBOX_ROOT}/{year}/{month}/{slug}_{ag}/1. ORCAMENTO"):
+        for sub in (f"{DROPBOX_ROOT}/{year}/{month}/{slug}/1. orcamento",
+                    f"{DROPBOX_ROOT}/{year}/{month}/{slug}/1. ORCAMENTO"):
             try:
                 entries = dbx.files_list_folder(sub).entries
                 break
             except Exception:
                 continue
         if entries is None:
-            print(f"  ⚠ Subpasta 1.ORCAMENTO não encontrada para {slug}_{ag}")
+            print(f"  ⚠ Subpasta 1.ORCAMENTO não encontrada para {slug}")
             return None
         pdf_entry = next((e for e in entries if e.name.endswith(".pdf")), None)
         if not pdf_entry:
@@ -2849,8 +2848,7 @@ def upload_budget_to_dropbox(pdf_path, xlsx_path, data):
     year  = data["checkin"].strftime("%Y")
     month = data["checkin"].strftime("%m")
     slug  = _build_slug(data)
-    ag    = data.get("agency_user", "agencia").upper()
-    client_folder = f"{DROPBOX_ROOT}/{year}/{month}/{slug}_{ag}"
+    client_folder = f"{DROPBOX_ROOT}/{year}/{month}/{slug}"
     folder = f"{client_folder}/1. ORCAMENTO"
 
     # Cria as demais subpastas (vazias) — "1. ORCAMENTO" é criada implicitamente pelo upload dos arquivos
