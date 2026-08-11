@@ -1584,8 +1584,6 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
         resumo_lines.append((t["res_desconto"].format(pct=pct_str), -calcs["extra_discount_amt"]))
     if calcs.get("agency_fee",  0) > 0:
         resumo_lines.append((t["res_agencia"], calcs["agency_fee"]))
-    if calcs.get("cc_fee",      0) > 0:
-        resumo_lines.append((t["res_cc"],      calcs["cc_fee"]))
     for label, val in resumo_lines:
         pdf.set_text_color(*_GL)
         pdf.set_xy(RX, ry)
