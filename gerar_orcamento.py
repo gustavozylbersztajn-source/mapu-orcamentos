@@ -1005,9 +1005,18 @@ def calculate(data, prices):
 
 
 # ── CRIAR ESTRUTURA DE PASTAS ──────────────────────────────────────────────────
+def _build_slug(data):
+    """Monta o slug padrão ANOMESDIA_CLIENTE_CABANA (ver feedback_mapu_nomenclatura_pastas)."""
+    cabin_part = "+".join(data.get("cabins", {}).keys())
+    slug = data["checkin"].strftime("%Y%m%d") + "_" + data.get("client", "orcamento")
+    if cabin_part:
+        slug += "_" + cabin_part
+    return slug
+
+
 def create_folders(data):
     import tempfile
-    slug = data["checkin"].strftime("%Y%m%d") + "_" + data["client"]
+    slug = _build_slug(data)
     if IS_CLOUD:
         path = Path(tempfile.gettempdir()) / "mapu_orcamentos" / slug
     else:
@@ -2250,7 +2259,7 @@ def send_approval_notification(data, calcs, pdf_path, app_url="http://localhost:
         return
 
     import urllib.parse
-    slug    = data["checkin"].strftime("%Y%m%d") + "_" + data.get("client", "orcamento")
+    slug    = _build_slug(data)
     checkin = data["checkin"].strftime("%d/%m/%Y")
     ag_name = data.get("agency_name", "Agência")
     total   = f"CLP {calcs['total_cc']:,.0f}".replace(",", ".")
@@ -2336,7 +2345,7 @@ def send_approval_notification(data, calcs, pdf_path, app_url="http://localhost:
             part = MIMEBase("application", "octet-stream")
             part.set_payload(f.read())
         encoders.encode_base64(part)
-        part.add_header("Content-Disposition", f"attachment; filename={Path(pdf_path).name}")
+        part.add_header("Content-Disposition", "attachment", filename=Path(pdf_path).name)
         msg.attach(part)
 
     try:
@@ -2451,7 +2460,7 @@ def send_approved_budget_email(data, calcs, pdf_path):
             part = MIMEBase("application", "octet-stream")
             part.set_payload(f.read())
         encoders.encode_base64(part)
-        part.add_header("Content-Disposition", f"attachment; filename={Path(pdf_path).name}")
+        part.add_header("Content-Disposition", "attachment", filename=Path(pdf_path).name)
         msg.attach(part)
 
     try:
@@ -2839,7 +2848,7 @@ def upload_budget_to_dropbox(pdf_path, xlsx_path, data):
 
     year  = data["checkin"].strftime("%Y")
     month = data["checkin"].strftime("%m")
-    slug  = data["checkin"].strftime("%Y%m%d") + "_" + data["client"]
+    slug  = _build_slug(data)
     ag    = data.get("agency_user", "agencia").upper()
     client_folder = f"{DROPBOX_ROOT}/{year}/{month}/{slug}_{ag}"
     folder = f"{client_folder}/1. ORCAMENTO"
