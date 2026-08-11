@@ -12,7 +12,7 @@
       "CHAITEN": 397936,
       "CORCOVADO": 488376
     },
-    "agency_rate": 0.15,
+    "agency_rate": 0.2,
     "cc_rate": 0.05,
     "meal_prices": {
       "breakfast": {
@@ -38,7 +38,7 @@
       "CHAITEN": 361760,
       "CORCOVADO": 452200
     },
-    "agency_rate": 0.15,
+    "agency_rate": 0.2,
     "cc_rate": 0.05,
     "meal_prices": {
       "breakfast": {

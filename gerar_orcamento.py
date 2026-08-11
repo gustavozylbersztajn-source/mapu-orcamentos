@@ -653,7 +653,7 @@ def _extract_precos_from_workbook(wb, is_alta):
     ws = wb["⚙️ INPUTS"]
     iva          = ws["B32"].value or 0.19
     cc_rate      = ws["B33"].value or 0.04
-    agency_rate  = ws["B34"].value or 0.15
+    agency_rate  = ws["B34"].value or 0.20
 
     cabin_order = ["COIGUE", "NIRE", "CHAITEN", "CORCOVADO"]
     base = {}
@@ -947,7 +947,7 @@ def calculate(data, prices):
     total_bruto = total_neto + iva
     _agency_rate = data.get("agency_rate_override")
     if _agency_rate is None:
-        _agency_rate = prices.get("agency_rate", 0.15)
+        _agency_rate = prices.get("agency_rate", 0.20)
     agency_fee  = round(total_bruto * _agency_rate) if data.get("agency") else 0
     total_cc    = (total_bruto + agency_fee) * (1 + CC_RATE)
     cc_fee      = round(total_cc - (total_bruto + agency_fee))
@@ -1174,7 +1174,7 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
         # C23: comissão agência — 0 para reserva direta, taxa do PLANNER (ou override do admin) se com agência
         _agency_rate = data.get("agency_rate_override")
         if _agency_rate is None:
-            _agency_rate = prices.get("agency_rate", 0.15)
+            _agency_rate = prices.get("agency_rate", 0.20)
         flags["C23"] = _agency_rate if data.get("agency") else 0
         flags["C24"] = prices.get("cc_rate", 0.04)
         updates[sheet_map["BUDGET RESUMO"]] = flags
