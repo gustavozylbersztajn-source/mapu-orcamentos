@@ -102,7 +102,6 @@ CABIN_MAP = {
     "COIGUE": {
         (1, 0): ("C", "BUDGET COIGUE 1"),
         (2, 0): ("D", "BUDGET COIGUE 2"),
-        (2, 1): ("E", "BUDGET COIGUE 2+1"),
     },
     "NIRE": {
         (1, 0): ("F", "BUDGET NIRE 1"),
