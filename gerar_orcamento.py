@@ -973,9 +973,11 @@ def calculate(data, prices):
     _agency_rate = data.get("agency_rate_override")
     if _agency_rate is None:
         _agency_rate = prices.get("agency_rate", 0.20)
-    agency_fee  = round(total_bruto * _agency_rate) if data.get("agency") else 0
-    total_cc    = (total_bruto + agency_fee) * (1 + CC_RATE)
-    cc_fee      = round(total_cc - (total_bruto + agency_fee))
+    agency_fee   = round(total_bruto * _agency_rate) if data.get("agency") else 0
+    # Comissão interna (Talita/MAPU) é absorvida, não repassada ao cliente — só agência externa repassa
+    fee_charged  = 0 if data.get("absorb_agency_fee") else agency_fee
+    total_cc    = (total_bruto + fee_charged) * (1 + CC_RATE)
+    cc_fee      = round(total_cc - (total_bruto + fee_charged))
     usd_ref     = total_cc / exchange
     per_adult   = total_cc / adults if adults > 0 else 0
 
@@ -1615,7 +1617,7 @@ def generate_pdf(data, calcs, client_path, slug, prop_num):
     if calcs.get("extra_discount_amt", 0) > 0:
         pct_str = f"{calcs['extra_discount_pct']*100:.0f}"
         resumo_lines.append((t["res_desconto"].format(pct=pct_str), -calcs["extra_discount_amt"]))
-    if calcs.get("agency_fee",  0) > 0:
+    if calcs.get("agency_fee",  0) > 0 and not data.get("absorb_agency_fee"):
         resumo_lines.append((t["res_agencia"], calcs["agency_fee"]))
     if calcs.get("cc_fee",      0) > 0:
         resumo_lines.append((t["res_cc"], calcs["cc_fee"]))

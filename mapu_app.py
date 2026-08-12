@@ -432,6 +432,7 @@ if submitted:
         "mapu_team":        0,
         "agency":           agency,
         "agency_rate_override": agency_rate_override,
+        "absorb_agency_fee": is_internal,
         "extra_discount_pct": extra_discount_pct,
         "adjustments":      adjustments,
         "lang":             lang,
