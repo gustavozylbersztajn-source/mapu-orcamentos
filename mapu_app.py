@@ -375,7 +375,7 @@ with st.form("orcamento"):
     agency = st.checkbox("Com agência", value=True)
     agency_rate_override = None
     if _pode_ajustar and agency:
-        _comissao_pct = st.selectbox("% de comissão", [10, 15, 20], index=2)
+        _comissao_pct = st.selectbox("% de comissão", [0, 10, 15, 20], index=3)
         agency_rate_override = _comissao_pct / 100
     extra_discount_pct = 0.0
     if _pode_ajustar:
