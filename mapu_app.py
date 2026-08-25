@@ -351,7 +351,7 @@ with st.form("orcamento"):
 
     CAB_LABELS = {
         "COIGUE":    "COIGUE (até 2 adultos)",
-        "NIRE":      "NIRE (até 2 adultos + 2 crianças)",
+        "NIRE":      "NIRE (até 4 adultos, ou 3 adultos + 2 crianças, ou 2 adultos + 3 crianças, ou 1 adulto + 4 crianças)",
         "CHAITEN":   "CHAITEN (até 2 adultos + 1 criança)",
         "CORCOVADO": "CORCOVADO (até 4 adultos ou 2 adultos + 3 crianças)",
     }

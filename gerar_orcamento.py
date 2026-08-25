@@ -108,6 +108,11 @@ CABIN_MAP = {
         (2, 0): ("G", "BUDGET NIRE 2"),
         (2, 1): ("H", "BUDGET NIRE 2+1"),
         (2, 2): ("I", "BUDGET NIRE 2+2"),
+        # Combos de preço plano (só cabana, sem taxa de hóspede extra) — ver FLAT_RATE_COMBOS
+        (4, 0): ("G", "BUDGET NIRE 2"),
+        (3, 2): ("G", "BUDGET NIRE 2"),
+        (2, 3): ("G", "BUDGET NIRE 2"),
+        (1, 4): ("G", "BUDGET NIRE 2"),
     },
     "CHAITEN": {
         (1, 0): ("J", "BUDGET CHAITEN 1"),
@@ -142,6 +147,13 @@ STANDARD_OCCUPANCY = {
     "NIRE":      2,
     "CHAITEN":   2,
     "CORCOVADO": 4,
+}
+
+# Combos que cobram só o preço plano da cabana, mesmo passando da ocupação padrão
+# (ex: NIRE aceita até 4 adultos, ou 3+2, 2+3, 1+4, sem taxa de hóspede extra).
+# Qualquer combo fora dessa lista continua caindo na regra padrão de INFANT_SUPPL.
+FLAT_RATE_COMBOS = {
+    "NIRE": {(4, 0), (3, 2), (2, 3), (1, 4)},
 }
 
 # ── CATÁLOGOS TIPO 2 — (nome, row BASE PAX) ────────────────────────────────────
@@ -885,7 +897,9 @@ def calculate(data, prices):
         clp        = prices[tier][cabin]
         adj        = data.get("adjustments", {}).get(cabin, 0)
         total_pax  = pax["adults"] + pax["infants"]
-        extra_supl = INFANT_SUPPL if total_pax > STANDARD_OCCUPANCY.get(cabin, 2) else 0
+        pax_key    = (pax["adults"], pax["infants"])
+        is_flat    = pax_key in FLAT_RATE_COMBOS.get(cabin, set())
+        extra_supl = 0 if is_flat else (INFANT_SUPPL if total_pax > STANDARD_OCCUPANCY.get(cabin, 2) else 0)
         base_amt   = (clp + extra_supl) * nights
         adj_amt    = round(base_amt * adj)
         cabin_amt  = base_amt + adj_amt
@@ -1259,7 +1273,8 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
             continue
         active_sheet_names.append(sheet_name)
         total_pax  = pax["adults"] + pax["infants"]
-        needs_extra = total_pax > STANDARD_OCCUPANCY.get(cabin, 2)
+        is_flat    = (pax["adults"], pax["infants"]) in FLAT_RATE_COMBOS.get(cabin, set())
+        needs_extra = total_pax > STANDARD_OCCUPANCY.get(cabin, 2) and not is_flat
         std_price  = prices["standard"][cabin]
         long_price = prices["long"][cabin]
         cc_rate    = prices.get("cc_rate", 0.04)
