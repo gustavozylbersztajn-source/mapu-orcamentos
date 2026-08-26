@@ -108,8 +108,11 @@ CABIN_MAP = {
         (2, 0): ("G", "BUDGET NIRE 2"),
         (2, 1): ("H", "BUDGET NIRE 2+1"),
         (2, 2): ("I", "BUDGET NIRE 2+2"),
-        # Combos de preço plano (só cabana, sem taxa de hóspede extra) — ver FLAT_RATE_COMBOS
+        # 1 a 4 adultos = sempre a mesma aba/preço plano (regra 26/ago/2026, ver _needs_extra_fee);
+        # (3,0) e (5,0) adicionados pra não cair no fallback (adults,0) sem entrada e sumir a aba.
+        (3, 0): ("G", "BUDGET NIRE 2"),
         (4, 0): ("G", "BUDGET NIRE 2"),
+        (5, 0): ("G", "BUDGET NIRE 2"),
         (3, 2): ("G", "BUDGET NIRE 2"),
         (2, 3): ("G", "BUDGET NIRE 2"),
         (1, 4): ("G", "BUDGET NIRE 2"),
@@ -149,12 +152,18 @@ STANDARD_OCCUPANCY = {
     "CORCOVADO": 4,
 }
 
-# Combos que cobram só o preço plano da cabana, mesmo passando da ocupação padrão
-# (ex: NIRE aceita até 4 adultos, ou 3+2, 2+3, 1+4, sem taxa de hóspede extra).
-# Qualquer combo fora dessa lista continua caindo na regra padrão de INFANT_SUPPL.
-FLAT_RATE_COMBOS = {
-    "NIRE": {(4, 0), (3, 2), (2, 3), (1, 4)},
-}
+# Regra de taxa de hóspede extra (INFANT_SUPPL), por cabana — validada com o Gustavo
+# em 26/ago/2026 direto na planilha V2 (ver [[project_mapu_planilha_v2]] na memória):
+# - COIGUE: nunca cobra extra (máx 2 pax fixo, sem espaço físico pra 3ª pessoa/berço)
+# - NIRE: 1 a 4 adultos sempre plano (crianças nunca contam pra extra); só o 5º adulto paga
+# - CHAITEN / demais: extra a partir da (STANDARD_OCCUPANCY + 1)ª pessoa, adulto ou criança
+def _needs_extra_fee(cabin, adults, infants):
+    if cabin == "COIGUE":
+        return False
+    if cabin == "NIRE":
+        return adults >= 5
+    total_pax = adults + infants
+    return total_pax > STANDARD_OCCUPANCY.get(cabin, 2)
 
 # ── CATÁLOGOS TIPO 2 — (nome, row BASE PAX) ────────────────────────────────────
 ACTIVITIES_PER_USE = [
@@ -897,9 +906,7 @@ def calculate(data, prices):
         clp        = prices[tier][cabin]
         adj        = data.get("adjustments", {}).get(cabin, 0)
         total_pax  = pax["adults"] + pax["infants"]
-        pax_key    = (pax["adults"], pax["infants"])
-        is_flat    = pax_key in FLAT_RATE_COMBOS.get(cabin, set())
-        extra_supl = 0 if is_flat else (INFANT_SUPPL if total_pax > STANDARD_OCCUPANCY.get(cabin, 2) else 0)
+        extra_supl = INFANT_SUPPL if _needs_extra_fee(cabin, pax["adults"], pax["infants"]) else 0
         base_amt   = (clp + extra_supl) * nights
         adj_amt    = round(base_amt * adj)
         cabin_amt  = base_amt + adj_amt
@@ -1273,8 +1280,7 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
             continue
         active_sheet_names.append(sheet_name)
         total_pax  = pax["adults"] + pax["infants"]
-        is_flat    = (pax["adults"], pax["infants"]) in FLAT_RATE_COMBOS.get(cabin, set())
-        needs_extra = total_pax > STANDARD_OCCUPANCY.get(cabin, 2) and not is_flat
+        needs_extra = _needs_extra_fee(cabin, pax["adults"], pax["infants"])
         std_price  = prices["standard"][cabin]
         long_price = prices["long"][cabin]
         cc_rate    = prices.get("cc_rate", 0.04)
