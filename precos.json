@@ -2,13 +2,13 @@
   "alta": {
     "standard": {
       "COIGUE": 315000,
-      "NIRE": 340000,
+      "NIRE": 370000,
       "CHAITEN": 352000,
       "CORCOVADO": 432000
     },
     "long": {
       "COIGUE": 299250,
-      "NIRE": 323000,
+      "NIRE": 351500,
       "CHAITEN": 334400,
       "CORCOVADO": 410400
     },
@@ -28,13 +28,13 @@
   "baixa": {
     "standard": {
       "COIGUE": 280000,
-      "NIRE": 300000,
+      "NIRE": 330000,
       "CHAITEN": 320000,
       "CORCOVADO": 400000
     },
     "long": {
       "COIGUE": 266000,
-      "NIRE": 285000,
+      "NIRE": 313500,
       "CHAITEN": 304000,
       "CORCOVADO": 380000
     },

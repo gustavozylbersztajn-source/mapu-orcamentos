@@ -87,6 +87,8 @@ SUBFOLDERS = [
 MARKUP       = 1.2
 CC_RATE      = 0.05
 INFANT_SUPPL = 50_000
+LONG_STAY_DISCOUNT = 0.95  # mesmo desconto de 7+ noites da tarifa da cabana — validado com o Gustavo
+                            # em 27/ago/2026 que a taxa de hóspede extra também deve levar o desconto
 
 CONFIG_PATH = ORCAMENTOS / "config.json"
 
@@ -907,6 +909,8 @@ def calculate(data, prices):
         adj        = data.get("adjustments", {}).get(cabin, 0)
         total_pax  = pax["adults"] + pax["infants"]
         extra_supl = INFANT_SUPPL if _needs_extra_fee(cabin, pax["adults"], pax["infants"]) else 0
+        if tier == "long":
+            extra_supl = round(extra_supl * LONG_STAY_DISCOUNT)
         base_amt   = (clp + extra_supl) * nights
         adj_amt    = round(base_amt * adj)
         cabin_amt  = base_amt + adj_amt
@@ -996,8 +1000,10 @@ def calculate(data, prices):
     agency_fee   = round(total_bruto * _agency_rate) if data.get("agency") else 0
     # Comissão interna (Talita/MAPU) é absorvida, não repassada ao cliente — só agência externa repassa
     fee_charged  = 0 if data.get("absorb_agency_fee") else agency_fee
-    total_cc    = (total_bruto + fee_charged) * (1 + CC_RATE)
-    cc_fee      = round(total_cc - (total_bruto + fee_charged))
+    # Taxa de cartão de crédito é absorvida pela MAPU em todos os canais (validado com o Gustavo
+    # em 27/ago/2026 — mesma política que já era usada no site) — não repassada ao cliente.
+    cc_fee      = 0
+    total_cc    = total_bruto + fee_charged
     usd_ref     = total_cc / exchange
     per_adult   = total_cc / adults if adults > 0 else 0
 
@@ -1296,7 +1302,7 @@ def populate_excel(data, client_path, slug, calcs, prices=None):
             "I48": "='BASE PAX'!B23*($B$5*'BASE PAX'!G23+$B$6*'BASE PAX'!H23)",
             "C24": std_price,  "C25": std_price,
             "C26": long_price, "C27": long_price,
-            "D25": INFANT_SUPPL, "D27": INFANT_SUPPL,
+            "D25": INFANT_SUPPL, "D27": round(INFANT_SUPPL * LONG_STAY_DISCOUNT),
             "F24": 0, "F25": 0, "F26": 0, "F27": 0,
         }
         cells["B25" if needs_extra else "B24"] = 1 if nights <= 6 else 0
@@ -2937,7 +2943,7 @@ def main():
     print(f"  Subtotal:           {fmt_clp(calcs['total'])}")
     if calcs.get("agency_fee", 0) > 0:
         print(f"  Taxa agência:       {fmt_clp(calcs['agency_fee'])}")
-    print(f"  TOTAL (c/ 5% CC):   {fmt_clp(calcs['total_cc'])}")
+    print(f"  TOTAL:              {fmt_clp(calcs['total_cc'])}")
     print(f"  IVA 19% (informativo):{fmt_clp(round(calcs['total'] * 0.19))}")
     print(f"  Ref USD:            {fmt_usd(calcs['usd_ref'])} USD")
     print(f"  Por adulto:         {fmt_clp(calcs['per_adult'])}")
